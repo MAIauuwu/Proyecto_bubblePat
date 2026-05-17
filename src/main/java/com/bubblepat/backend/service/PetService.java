@@ -4,10 +4,12 @@ import com.bubblepat.backend.model.Pet;
 import com.bubblepat.backend.repository.PetRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class PetService {
+
 
     @Autowired
     private PetRepository petRepository;
@@ -47,6 +49,7 @@ public class PetService {
         Pet pet = petRepository.findById(id).orElse(null);
         if (pet != null) {
             pet.setDailyStreak(pet.getDailyStreak() + 1);
+            pet.setLastRoutineDate(LocalDate.now());
             return petRepository.save(pet);
         }
         return null;
