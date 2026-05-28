@@ -1,8 +1,9 @@
 package com.bubblepat.backend.controller;
 
-import com.bubblepat.backend.model.Pet;
+import com.bubblepat.backend.dto.*;
 import com.bubblepat.backend.service.PetService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,16 +13,92 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class PetController {
 
-    @Autowired
-    private PetService petService;
+    private final PetService petService;
+
+    public PetController(PetService petService) {
+        this.petService = petService;
+    }
 
     @GetMapping
-    public List<Pet> getAll() {
-        return petService.listarTodas();
+    public ResponseEntity<List<PetResponse>> getAll(@RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.listarPorUsuario(email));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PetResponse> getById(@PathVariable Long id, @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.obtenerPorId(id, email));
     }
 
     @PostMapping
-    public Pet create(@RequestBody Pet pet) {
-        return petService.guardarMascota(pet);
+    public ResponseEntity<PetResponse> create(@Valid @RequestBody PetRequest request,
+                                              @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.crear(request, email));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PetResponse> update(@PathVariable Long id,
+                                              @Valid @RequestBody PetRequest request,
+                                              @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.actualizar(id, request, email));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, @RequestAttribute("email") String email) {
+        petService.eliminar(id, email);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/streak")
+    public ResponseEntity<PetResponse> updateStreak(@PathVariable Long id,
+                                                    @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.actualizarRacha(id, email));
+    }
+
+    // === RUTINAS ===
+    @PostMapping("/{petId}/routines")
+    public ResponseEntity<RoutineResponse> addRoutine(@PathVariable Long petId,
+                                                      @Valid @RequestBody RoutineRequest request,
+                                                      @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.agregarRutina(petId, request, email));
+    }
+
+    @GetMapping("/{petId}/routines")
+    public ResponseEntity<List<RoutineResponse>> getRoutines(@PathVariable Long petId,
+                                                             @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.listarRutinas(petId, email));
+    }
+
+    @PatchMapping("/routines/{routineId}/complete")
+    public ResponseEntity<RoutineResponse> completeRoutine(@PathVariable Long routineId,
+                                                           @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.completarRutina(routineId, email));
+    }
+
+    // === VACUNAS ===
+    @PostMapping("/{petId}/vaccinations")
+    public ResponseEntity<VaccinationResponse> addVaccination(@PathVariable Long petId,
+                                                              @Valid @RequestBody VaccinationRequest request,
+                                                              @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.agregarVacuna(petId, request, email));
+    }
+
+    @GetMapping("/{petId}/vaccinations")
+    public ResponseEntity<List<VaccinationResponse>> getVaccinations(@PathVariable Long petId,
+                                                                     @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.listarVacunas(petId, email));
+    }
+
+    // === RECORDATORIOS ===
+    @PostMapping("/{petId}/reminders")
+    public ResponseEntity<ReminderResponse> addReminder(@PathVariable Long petId,
+                                                        @Valid @RequestBody ReminderRequest request,
+                                                        @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.agregarRecordatorio(petId, request, email));
+    }
+
+    @GetMapping("/{petId}/reminders")
+    public ResponseEntity<List<ReminderResponse>> getReminders(@PathVariable Long petId,
+                                                               @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.listarRecordatorios(petId, email));
     }
 }
