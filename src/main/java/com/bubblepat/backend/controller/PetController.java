@@ -74,6 +74,20 @@ public class PetController {
         return ResponseEntity.ok(petService.completarRutina(routineId, email));
     }
 
+    @PutMapping("/routines/{routineId}")
+    public ResponseEntity<RoutineResponse> updateRoutine(@PathVariable Long routineId,
+                                                         @Valid @RequestBody RoutineRequest request,
+                                                         @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.editarRutina(routineId, request, email));
+    }
+
+    @DeleteMapping("/routines/{routineId}")
+    public ResponseEntity<Void> deleteRoutine(@PathVariable Long routineId,
+                                              @RequestAttribute("email") String email) {
+        petService.eliminarRutina(routineId, email);
+        return ResponseEntity.noContent().build();
+    }
+
     // === VACUNAS ===
     @PostMapping("/{petId}/vaccinations")
     public ResponseEntity<VaccinationResponse> addVaccination(@PathVariable Long petId,
@@ -88,6 +102,20 @@ public class PetController {
         return ResponseEntity.ok(petService.listarVacunas(petId, email));
     }
 
+    @PutMapping("/vaccinations/{vaccinationId}")
+    public ResponseEntity<VaccinationResponse> updateVaccination(@PathVariable Long vaccinationId,
+                                                                 @Valid @RequestBody VaccinationRequest request,
+                                                                 @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.editarVacuna(vaccinationId, request, email));
+    }
+
+    @DeleteMapping("/vaccinations/{vaccinationId}")
+    public ResponseEntity<Void> deleteVaccination(@PathVariable Long vaccinationId,
+                                                  @RequestAttribute("email") String email) {
+        petService.eliminarVacuna(vaccinationId, email);
+        return ResponseEntity.noContent().build();
+    }
+
     // === RECORDATORIOS ===
     @PostMapping("/{petId}/reminders")
     public ResponseEntity<ReminderResponse> addReminder(@PathVariable Long petId,
@@ -100,5 +128,25 @@ public class PetController {
     public ResponseEntity<List<ReminderResponse>> getReminders(@PathVariable Long petId,
                                                                @RequestAttribute("email") String email) {
         return ResponseEntity.ok(petService.listarRecordatorios(petId, email));
+    }
+
+    @PatchMapping("/reminders/{reminderId}/complete")
+    public ResponseEntity<ReminderResponse> completeReminder(@PathVariable Long reminderId,
+                                                              @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.completarRecordatorio(reminderId, email));
+    }
+
+    @PutMapping("/reminders/{reminderId}")
+    public ResponseEntity<ReminderResponse> updateReminder(@PathVariable Long reminderId,
+                                                            @Valid @RequestBody ReminderRequest request,
+                                                            @RequestAttribute("email") String email) {
+        return ResponseEntity.ok(petService.editarRecordatorio(reminderId, request, email));
+    }
+
+    @DeleteMapping("/reminders/{reminderId}")
+    public ResponseEntity<Void> deleteReminder(@PathVariable Long reminderId,
+                                               @RequestAttribute("email") String email) {
+        petService.eliminarRecordatorio(reminderId, email);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -145,6 +145,22 @@ public class PetService {
         return toRoutineResponse(routineRepository.save(routine));
     }
 
+    public RoutineResponse editarRutina(Long routineId, RoutineRequest request, String email) {
+        Routine routine = routineRepository.findById(routineId)
+                .orElseThrow(() -> new RuntimeException("Rutina no encontrada"));
+        if (!routine.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        routine.setType(request.getType());
+        routine.setDescription(request.getDescription());
+        return toRoutineResponse(routineRepository.save(routine));
+    }
+
+    public void eliminarRutina(Long routineId, String email) {
+        Routine routine = routineRepository.findById(routineId)
+                .orElseThrow(() -> new RuntimeException("Rutina no encontrada"));
+        if (!routine.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        routineRepository.delete(routine);
+    }
+
     // === VACUNAS ===
     public VaccinationResponse agregarVacuna(Long petId, VaccinationRequest request, String email) {
         Pet pet = petRepository.findById(petId)
@@ -168,6 +184,25 @@ public class PetService {
         return vaccinationRepository.findByPetId(petId).stream().map(this::toVaccinationResponse).collect(Collectors.toList());
     }
 
+    public VaccinationResponse editarVacuna(Long vaccinationId, VaccinationRequest request, String email) {
+        Vaccination vac = vaccinationRepository.findById(vaccinationId)
+                .orElseThrow(() -> new RuntimeException("Vacuna no encontrada"));
+        if (!vac.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        vac.setName(request.getName());
+        vac.setAppliedDate(request.getAppliedDate());
+        vac.setNextDoseDate(request.getNextDoseDate());
+        vac.setVetName(request.getVetName());
+        vac.setNotes(request.getNotes());
+        return toVaccinationResponse(vaccinationRepository.save(vac));
+    }
+
+    public void eliminarVacuna(Long vaccinationId, String email) {
+        Vaccination vac = vaccinationRepository.findById(vaccinationId)
+                .orElseThrow(() -> new RuntimeException("Vacuna no encontrada"));
+        if (!vac.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        vaccinationRepository.delete(vac);
+    }
+
     // === RECORDATORIOS ===
     public ReminderResponse agregarRecordatorio(Long petId, ReminderRequest request, String email) {
         Pet pet = petRepository.findById(petId)
@@ -187,6 +222,31 @@ public class PetService {
                 .orElseThrow(() -> new RuntimeException("Mascota no encontrada"));
         if (!pet.getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
         return reminderRepository.findByPetId(petId).stream().map(this::toReminderResponse).collect(Collectors.toList());
+    }
+
+    public ReminderResponse completarRecordatorio(Long reminderId, String email) {
+        Reminder reminder = reminderRepository.findById(reminderId)
+                .orElseThrow(() -> new RuntimeException("Recordatorio no encontrado"));
+        if (!reminder.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        reminder.setCompleted(true);
+        return toReminderResponse(reminderRepository.save(reminder));
+    }
+
+    public ReminderResponse editarRecordatorio(Long reminderId, ReminderRequest request, String email) {
+        Reminder reminder = reminderRepository.findById(reminderId)
+                .orElseThrow(() -> new RuntimeException("Recordatorio no encontrado"));
+        if (!reminder.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        reminder.setTitle(request.getTitle());
+        reminder.setDescription(request.getDescription());
+        reminder.setReminderDate(request.getReminderDate());
+        return toReminderResponse(reminderRepository.save(reminder));
+    }
+
+    public void eliminarRecordatorio(Long reminderId, String email) {
+        Reminder reminder = reminderRepository.findById(reminderId)
+                .orElseThrow(() -> new RuntimeException("Recordatorio no encontrado"));
+        if (!reminder.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        reminderRepository.delete(reminder);
     }
 
     // === MAPPERS (convierten Entity -> DTO Response) ===
