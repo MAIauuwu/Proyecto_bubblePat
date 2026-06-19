@@ -87,6 +87,76 @@ npm run dev
 - Frontend: http://localhost:3000
 - El esquema de tablas se crea/actualiza automáticamente (`spring.jpa.hibernate.ddl-auto=update`).
 
+## Despliegue (producción)
+
+### Plataforma elegida: **Render**
+
+El proyecto se despliega en [Render](https://render.com), una plataforma PaaS (Platform as a Service) que aloja los tres componentes del sistema —base de datos, backend y frontend— en una misma cuenta y panel, lo que simplifica enormemente la operación respecto a combinar varios proveedores.
+
+**Justificación de la elección:**
+
+- **Todo en uno:** soporta PostgreSQL gestionado, web services (Java/Spring Boot) y sitios estáticos (frontend Vite) bajo el mismo proveedor. No es necesario coordinar entre Vercel + Railway + Neon, por ejemplo.
+- **Integración nativa con GitHub:** cada `push` desencadena un redeploy automático del servicio afectado, ideal para un flujo de trabajo ágil.
+- **Capa gratuita permanente:** permite mantener el proyecto en línea para la entrega académica sin costo, con PostgreSQL gratuito por 90 días y web/static services en plan Free.
+- **Detección automática del stack:** reconoce Maven (`pom.xml`) y Node/Vite sin configuración manual del runtime.
+- **Variables de entorno seguras:** las credenciales (`DB_*`, `JWT_SECRET`, `API_NINJAS_KEY`, `CORS_ALLOWED_ORIGINS`, `VITE_API_BASE_URL`) viven en el panel, nunca en el repositorio.
+- **Curva de aprendizaje baja:** interfaz web sencilla, comparable a Heroku, suficiente para un proyecto académico.
+
+> **Trade-off del plan Free:** los servicios "duermen" tras 15 minutos sin tráfico; el primer request tarda ~30–50 s en despertar. Es aceptable para fines demostrativos.
+
+### Servicios en Render
+
+| Servicio | Tipo | Carpeta | Rol |
+|----------|------|---------|-----|
+| `bubblepat-db` | PostgreSQL | — | Base de datos relacional gestionada |
+| `bubblepat-backend` | Web Service | `backend/` | API REST (Spring Boot) |
+| `bubblepat-frontend` | Static Site | `frontend/` | SPA (React + Vite) publicada desde `dist/` |
+
+### Preparación del código (ya aplicada)
+
+Para funcionar en la nube, el código se adaptó en los siguientes puntos:
+
+1. **Puerto dinámico en el backend** — Render inyecta el puerto por la variable `PORT`. En `application.properties`:
+   ```properties
+   server.port=${PORT:8081}
+   ```
+2. **CORS configurable** — los orígenes permitidos se controlan con `CORS_ALLOWED_ORIGINS` (en `SecurityConfig`), para autorizar el dominio público del frontend.
+3. **URL del backend configurable en el frontend** — `src/api/client.js` usa `VITE_API_BASE_URL` si está definida; si no, mantiene el proxy `/api` de Vite (desarrollo local).
+
+### Pasos del despliegue
+
+1. **Crear la base de datos**
+   - Render → *New +* → **PostgreSQL** → plan Free.
+   - Anotar `Host`, `Database`, `Username`, `Password` (Render también entrega una *Internal Database URL*).
+
+2. **Desplegar el backend (Web Service)**
+   - Conectar el repo `MAIauuwu/Proyecto_bubblePat`, carpeta raíz `backend`.
+   - **Build Command:** `./mvnw clean install -DskipTests`
+   - **Start Command:** `java -jar target/*.jar`
+   - Variables de entorno:
+
+     | Key | Value |
+     |-----|-------|
+     | `DB_URL` | `jdbc:postgresql://<host>:5432/<database>` |
+     | `DB_USER` | *(de Render PostgreSQL)* |
+     | `DB_PASSWORD` | *(de Render PostgreSQL)* |
+     | `API_NINJAS_KEY` | clave real |
+     | `JWT_SECRET` | cadena aleatoria de 40+ caracteres |
+     | `CORS_ALLOWED_ORIGINS` | `https://bubblepat-frontend.onrender.com` |
+
+3. **Desplegar el frontend (Static Site)**
+   - Mismo repo, carpeta raíz `frontend`.
+   - **Build Command:** `npm install && npm run build`
+   - **Publish Directory:** `dist`
+   - Variable de entorno:
+
+     | Key | Value |
+     |-----|-------|
+     | `VITE_API_BASE_URL` | `https://bubblepat-backend.onrender.com/api` |
+
+4. **Cerrar el CORS**
+   - Volver al backend → Environment → confirmar que `CORS_ALLOWED_ORIGINS` coincide con la URL final del Static Site.
+
 ## Arquitectura del proyecto
 
 Monorepo con frontend y backend separados en carpetas:
