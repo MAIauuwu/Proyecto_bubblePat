@@ -128,16 +128,35 @@ public class PetService {
         petRepository.save(pet);
     }
 
-    // Avanza la racha solo cuando TODAS las rutinas de la mascota están hechas hoy.
-    private void intentarAvanzarRacha(Pet pet, LocalDate today) {
-        if (today.equals(pet.getLastRoutineDate())) return; // hoy ya se contó
+    // Sincroniza la racha con el estado REAL de las rutinas de hoy:
+    //  - si TODAS están hechas hoy y hoy no estaba contado -> avanza (+1)
+    //  - si FALTA alguna y hoy SÍ estaba contado -> revierte (hoy deja de contar)
+    private void sincronizarRacha(Pet pet, LocalDate today) {
         List<Routine> rutinas = routineRepository.findByPetId(pet.getId());
         if (rutinas.isEmpty()) return; // sin rutinas no hay racha
         boolean todasHoy = rutinas.stream().allMatch(r ->
                 r.isCompleted() && r.getCompletedAt() != null
                         && r.getCompletedAt().toLocalDate().equals(today));
-        if (!todasHoy) return;
-        aplicarAvanceRacha(pet, today);
+        if (todasHoy) {
+            if (!today.equals(pet.getLastRoutineDate())) {
+                aplicarAvanceRacha(pet, today);
+            }
+        } else if (today.equals(pet.getLastRoutineDate())) {
+            revertirRacha(pet, today);
+        }
+    }
+
+    // Descontar el día de hoy de la racha (p.ej. al agregar una rutina pendiente
+    // después de que hoy ya se había completado todo).
+    private void revertirRacha(Pet pet, LocalDate today) {
+        if (pet.getDailyStreak() >= 2) {
+            pet.setDailyStreak(pet.getDailyStreak() - 1);
+            pet.setLastRoutineDate(today.minusDays(1));
+        } else {
+            pet.setDailyStreak(0);
+            pet.setLastRoutineDate(null);
+        }
+        petRepository.save(pet);
     }
 
     // === RUTINAS ===
@@ -151,6 +170,11 @@ public class PetService {
         routine.setType(request.getType());
         routine.setDescription(request.getDescription());
         routine = routineRepository.save(routine);
+
+        // Si hoy ya estaba toda la racha completada, agregar una rutina pendiente
+        // hace que hoy vuelva a estar incompleto: se descuenta el día.
+        sincronizarRacha(pet, LocalDate.now());
+
         return toRoutineResponse(routine);
     }
 
@@ -171,8 +195,8 @@ public class PetService {
         routine.setCompletedAt(LocalDateTime.now());
         routine = routineRepository.save(routine);
 
-        // Si con esta rutina quedan TODAS las de la mascota hechas hoy, avanza la racha.
-        intentarAvanzarRacha(routine.getPet(), today);
+        // Sincroniza la racha: avanza si con esta rutina quedan TODAS hechas hoy.
+        sincronizarRacha(routine.getPet(), today);
 
         return toRoutineResponse(routine);
     }
@@ -190,7 +214,10 @@ public class PetService {
         Routine routine = routineRepository.findById(routineId)
                 .orElseThrow(() -> new RuntimeException("Rutina no encontrada"));
         if (!routine.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        Pet pet = routine.getPet();
         routineRepository.delete(routine);
+        // Al eliminar una rutina, hoy podría quedar completo -> avanza la racha.
+        sincronizarRacha(pet, LocalDate.now());
     }
 
     // === VACUNAS ===
