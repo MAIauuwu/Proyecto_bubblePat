@@ -162,15 +162,6 @@ export default function PetDetail() {
     }
   };
 
-  const completeTodayRoutine = async () => {
-    try {
-      await api.patch(`/pets/${id}/streak`);
-      loadPet();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Error al actualizar la racha');
-    }
-  };
-
   if (!pet) return <div className="min-h-screen flex items-center justify-center text-rose-300">Cargando...</div>;
 
   const streakInfo = {
@@ -180,6 +171,10 @@ export default function PetDetail() {
     never: { label: 'Aún no tienes racha', color: 'text-rose-300' },
   };
   const streak = streakInfo[pet.streakStatus] || streakInfo.never;
+
+  const routinesToday = pet.routines || [];
+  const doneTodayCount = routinesToday.filter((r) => r.doneToday).length;
+  const totalRoutines = routinesToday.length;
 
   const formatDateTime = (iso) => {
     if (!iso) return null;
@@ -265,17 +260,15 @@ export default function PetDetail() {
                 <p className="text-xs text-rose-300">🏆 Récord: {pet.bestStreak} días</p>
               )}
               <p className={`text-xs font-medium ${streak.color}`}>{streak.label}</p>
-              <button
-                onClick={completeTodayRoutine}
-                disabled={pet.routineDoneToday}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  pet.routineDoneToday
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-emerald-200 text-emerald-700 hover:bg-emerald-300'
-                }`}
-              >
-                {pet.routineDoneToday ? '✓ Hecho hoy' : 'Completar rutina de hoy'}
-              </button>
+              {totalRoutines === 0 ? (
+                <p className="text-xs text-rose-300">Agrega rutinas para alimentar la racha 🔥</p>
+              ) : pet.routineDoneToday ? (
+                <p className="text-xs text-emerald-600 font-medium">✓ {doneTodayCount}/{totalRoutines} rutinas hoy</p>
+              ) : (
+                <p className="text-xs text-rose-400 font-medium">
+                  {doneTodayCount}/{totalRoutines} rutinas hoy · completa todas para sumar
+                </p>
+              )}
             </div>
           </div>
 
@@ -325,15 +318,21 @@ export default function PetDetail() {
               )}
             </form>
 
+            {(!pet.routines || pet.routines.length === 0) && (
+              <div className={`${cardClass} text-center text-rose-300 text-sm`}>
+                No hay rutinas. Agrega las actividades diarias (alimentación, paseo, medicina…) para alimentar la racha 🔥
+              </div>
+            )}
+
             {pet.routines?.map((r) => (
-              <div key={r.id} className={`${cardClass} flex justify-between items-center ${r.completed ? 'opacity-60' : ''}`}>
+              <div key={r.id} className={`${cardClass} flex justify-between items-center ${r.doneToday ? 'opacity-60' : ''}`}>
                 <div>
                   <span className="font-medium text-rose-400">{r.type}</span>
                   {r.description && <span className="text-rose-200 ml-2">· {r.description}</span>}
-                  {r.completed && <span className="text-emerald-400 ml-2 text-sm">✓ Completada</span>}
+                  {r.doneToday && <span className="text-emerald-400 ml-2 text-sm">✓ Hecha hoy</span>}
                 </div>
                 <div className="flex gap-2 items-center">
-                  {!r.completed && (
+                  {!r.doneToday && (
                     <>
                       <button onClick={() => startEditRoutine(r)} className={btnSecondary}>Editar</button>
                       <button onClick={() => completeRoutine(r.id)}

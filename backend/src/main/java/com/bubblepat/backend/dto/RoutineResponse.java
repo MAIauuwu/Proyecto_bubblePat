@@ -11,4 +11,5 @@ public class RoutineResponse {
     private String description;
     private LocalDateTime completedAt;
     private boolean completed;
+    private boolean doneToday;
 }

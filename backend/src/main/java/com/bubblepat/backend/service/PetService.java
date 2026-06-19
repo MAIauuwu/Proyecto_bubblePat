@@ -101,30 +101,43 @@ public class PetService {
         }
 
         LocalDate today = LocalDate.now();
-        LocalDate last = pet.getLastRoutineDate();
-        if (today.equals(last)) {
+        if (today.equals(pet.getLastRoutineDate())) {
             throw new RuntimeException("Ya completaste la rutina de hoy");
         }
 
+        aplicarAvanceRacha(pet, today);
+        return toResponse(pet);
+    }
+
+    // Calcula y persiste el avance de la racha para 'today' (sin validaciones de guarda).
+    private void aplicarAvanceRacha(Pet pet, LocalDate today) {
+        LocalDate last = pet.getLastRoutineDate();
         int newStreak;
         if (last == null) {
-            // Primera vez que se registra
             newStreak = 1;
         } else if (last.equals(today.minusDays(1))) {
-            // Continuó al día siguiente: la racha sigue viva
             newStreak = pet.getDailyStreak() + 1;
         } else {
-            // Hubo un salto de días: la racha se rompe y vuelve a empezar
             newStreak = 1;
         }
-
         pet.setDailyStreak(newStreak);
         pet.setLastRoutineDate(today);
         if (newStreak > pet.getBestStreak()) {
             pet.setBestStreak(newStreak);
         }
+        petRepository.save(pet);
+    }
 
-        return toResponse(petRepository.save(pet));
+    // Avanza la racha solo cuando TODAS las rutinas de la mascota están hechas hoy.
+    private void intentarAvanzarRacha(Pet pet, LocalDate today) {
+        if (today.equals(pet.getLastRoutineDate())) return; // hoy ya se contó
+        List<Routine> rutinas = routineRepository.findByPetId(pet.getId());
+        if (rutinas.isEmpty()) return; // sin rutinas no hay racha
+        boolean todasHoy = rutinas.stream().allMatch(r ->
+                r.isCompleted() && r.getCompletedAt() != null
+                        && r.getCompletedAt().toLocalDate().equals(today));
+        if (!todasHoy) return;
+        aplicarAvanceRacha(pet, today);
     }
 
     // === RUTINAS ===
@@ -152,9 +165,16 @@ public class PetService {
         Routine routine = routineRepository.findById(routineId)
                 .orElseThrow(() -> new RuntimeException("Rutina no encontrada"));
         if (!routine.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+
+        LocalDate today = LocalDate.now();
         routine.setCompleted(true);
-        routine.setCompletedAt(java.time.LocalDateTime.now());
-        return toRoutineResponse(routineRepository.save(routine));
+        routine.setCompletedAt(LocalDateTime.now());
+        routine = routineRepository.save(routine);
+
+        // Si con esta rutina quedan TODAS las de la mascota hechas hoy, avanza la racha.
+        intentarAvanzarRacha(routine.getPet(), today);
+
+        return toRoutineResponse(routine);
     }
 
     public RoutineResponse editarRutina(Long routineId, RoutineRequest request, String email) {
@@ -315,6 +335,8 @@ public class PetService {
         resp.setDescription(r.getDescription());
         resp.setCompletedAt(r.getCompletedAt());
         resp.setCompleted(r.isCompleted());
+        resp.setDoneToday(r.isCompleted() && r.getCompletedAt() != null
+                && r.getCompletedAt().toLocalDate().equals(LocalDate.now()));
         return resp;
     }
 
