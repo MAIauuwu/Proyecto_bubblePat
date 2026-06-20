@@ -404,14 +404,14 @@ Mejoras aplicadas **derivadas de los resultados de las pruebas u observaciones r
 
 | # | Resultado de la prueba / observación | Ajuste aplicado | Estándar de calidad | Evidencia |
 |---|---|---|---|---|
-| **M-01** | Al completar una rutina, agregar/eliminar rutinas o descompletar el día dejaba la racha inconsistente con el estado real (observación en PT-09/PT-11) | Se implementó **`sincronizarRacha()`** y **`revertirRacha()`** en `PetService`: la racha avanza solo cuando **todas** las rutinas del día están completas y se revierte si el día queda incompleto | **Corrección** y **Completitud** | [INSERTAR EVIDENCIA: commit + captura antes/después de la racha] |
-| **M-02** | La racha mostrada podía aparecer "activa" aunque ya estuviera rota por días sin actividad (verificación visual) | En `toResponse()` se calcula la **racha efectiva**: si `lastRoutineDate` no es hoy ni ayer, `effectiveStreak=0` y `streakStatus="broken"` | **Corrección** | [INSERTAR EVIDENCIA: captura racha rota → 0] |
-| **M-03** | Endpoints permitían inferir datos de mascotas ajenas (riesgo de acceso horizontal) | Validación de **propiedad por recurso** en cada operación (rutinas, vacunas, recordatorios): `if (!...getUser().getEmail().equals(email)) throw ...` (PT-07) | **Seguridad** | [INSERTAR EVIDENCIA: PT-07 denegando acceso] |
-| **M-04** | Errores del backend llegaban como trazas o códigos poco claros al cliente | Se agregó **`GlobalExceptionHandler`** (`@RestControllerAdvice`) que devuelve JSON estructurado y maneja `MethodArgumentNotValidException` con mensajes por campo (PT-06) | **Usabilidad** y **Corrección** | [INSERTAR EVIDENCIA: respuesta 400 con mapa de errores] |
-| **M-05** | Claves de API y secretos podían quedar en el código | Se externalizó todo a **`.env`** + `.gitignore`, con `.env.example` de plantilla; claves de APIs externas viven solo en el backend | **Seguridad** | [INSERTAR EVIDENCIA: `.env.example` y `.gitignore`] |
-| **M-06** | Los recordatorios no comunicaban su urgencia al usuario | Se calcula **estado y días restantes** (`vencido/hoy/próximo/futuro`, `daysUntil`) en `toReminderResponse()` y se muestran con badges de color en la UI (PT-13) | **Pertinencia** y **Usabilidad** | [INSERTAR EVIDENCIA: badges de recordatorio en UI] |
-| **M-07** | Contraseñas en claro en BD (observación de seguridad) | Hash con **bcrypt** (`BCryptPasswordEncoder`) al registrar y validación con `matches()` al login | **Seguridad** | [INSERTAR EVIDENCIA: password hasheado en BD] |
-| **M-08** | Acceso sin autenticación a endpoints sensibles | Configuración **JWT stateless** + reglas `authorizeHttpRequests` que solo permiten `/api/auth/**`, `/api/dogs/**`, `/api/cats/**`, `/api/breeds/**` (PT-08) | **Seguridad** | [INSERTAR EVIDENCIA: PT-08 denegando acceso] |
+ Al completar una rutina, agregar/eliminar rutinas o descompletar el día dejaba la racha inconsistente con el estado real (observación en PT-09/PT-11) | Se implementó **`sincronizarRacha()`** y **`revertirRacha()`** en `PetService`: la racha avanza solo cuando **todas** las rutinas del día están completas y se revierte si el día queda incompleto | **Corrección** y **Completitud** | [INSERTAR EVIDENCIA: commit + captura antes/después de la racha] |
+La racha mostrada podía aparecer "activa" aunque ya estuviera rota por días sin actividad (verificación visual) | En `toResponse()` se calcula la **racha efectiva**: si `lastRoutineDate` no es hoy ni ayer, `effectiveStreak=0` y `streakStatus="broken"` | **Corrección** | [INSERTAR EVIDENCIA: captura racha rota → 0] |
+Endpoints permitían inferir datos de mascotas ajenas (riesgo de acceso horizontal) | Validación de **propiedad por recurso** en cada operación (rutinas, vacunas, recordatorios): `if (!...getUser().getEmail().equals(email)) throw ...` (PT-07) | **Seguridad** | [INSERTAR EVIDENCIA: PT-07 denegando acceso] |
+Errores del backend llegaban como trazas o códigos poco claros al cliente | Se agregó **`GlobalExceptionHandler`** (`@RestControllerAdvice`) que devuelve JSON estructurado y maneja `MethodArgumentNotValidException` con mensajes por campo (PT-06) | **Usabilidad** y **Corrección** | [INSERTAR EVIDENCIA: respuesta 400 con mapa de errores] |
+Claves de API y secretos podían quedar en el código | Se externalizó todo a **`.env`** + `.gitignore`, con `.env.example` de plantilla; claves de APIs externas viven solo en el backend | **Seguridad** | [INSERTAR EVIDENCIA: `.env.example` y `.gitignore`] |
+Los recordatorios no comunicaban su urgencia al usuario | Se calcula **estado y días restantes** (`vencido/hoy/próximo/futuro`, `daysUntil`) en `toReminderResponse()` y se muestran con badges de color en la UI (PT-13) | **Pertinencia** y **Usabilidad** | [INSERTAR EVIDENCIA: badges de recordatorio en UI] |
+Contraseñas en claro en BD (observación de seguridad) | Hash con **bcrypt** (`BCryptPasswordEncoder`) al registrar y validación con `matches()` al login | **Seguridad** | [INSERTAR EVIDENCIA: password hasheado en BD] |
+ Acceso sin autenticación a endpoints sensibles | Configuración **JWT stateless** + reglas `authorizeHttpRequests` que solo permiten `/api/auth/**`, `/api/dogs/**`, `/api/cats/**`, `/api/breeds/**` (PT-08) | **Seguridad** | [INSERTAR EVIDENCIA: PT-08 denegando acceso] |
 
 ### 4.6 Documentos de aceptación
 
@@ -472,6 +472,3 @@ Ejemplo de respuesta de `GET /pets/{id}` (extracto):
 }
 ```
 
----
-
-*Fin del informe.*
