@@ -125,37 +125,7 @@ Para funcionar en la nube, el código se adaptó en los siguientes puntos:
 
 ### Pasos del despliegue
 
-1. **Crear la base de datos**
-   - Render → *New +* → **PostgreSQL** → plan Free.
-   - Anotar `Host`, `Database`, `Username`, `Password` (Render también entrega una *Internal Database URL*).
-
-2. **Desplegar el backend (Web Service)**
-   - Conectar el repo `MAIauuwu/Proyecto_bubblePat`, carpeta raíz `backend`.
-   - **Build Command:** `./mvnw clean install -DskipTests`
-   - **Start Command:** `java -jar target/*.jar`
-   - Variables de entorno:
-
-     | Key | Value |
-     |-----|-------|
-     | `DB_URL` | `jdbc:postgresql://<host>:5432/<database>` |
-     | `DB_USER` | *(de Render PostgreSQL)* |
-     | `DB_PASSWORD` | *(de Render PostgreSQL)* |
-     | `API_NINJAS_KEY` | clave real |
-     | `JWT_SECRET` | cadena aleatoria de 40+ caracteres |
-     | `CORS_ALLOWED_ORIGINS` | `https://bubblepat-frontend.onrender.com` |
-
-3. **Desplegar el frontend (Static Site)**
-   - Mismo repo, carpeta raíz `frontend`.
-   - **Build Command:** `npm install && npm run build`
-   - **Publish Directory:** `dist`
-   - Variable de entorno:
-
-     | Key | Value |
-     |-----|-------|
-     | `VITE_API_BASE_URL` | `https://bubblepat-backend.onrender.com/api` |
-
-4. **Cerrar el CORS**
-   - Volver al backend → Environment → confirmar que `CORS_ALLOWED_ORIGINS` coincide con la URL final del Static Site.
+en configuracion por problemas tecnicos de ec2 
 
 ## Arquitectura del proyecto
 
