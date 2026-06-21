@@ -70,6 +70,200 @@ mvn spring-boot:run
 
 El servidor queda en `http://localhost:8081`. El esquema de tablas se crea/actualiza automáticamente (`spring.jpa.hibernate.ddl-auto=update`).
 
+## Despliegue en AWS (EC2)
+
+El backend se publica en una instancia **Amazon EC2** corriendo **Amazon Linux 2023** (tipo **`t3.micro`**, Free Tier). Todo el stack corre con **Docker**: el backend en un contenedor construido a partir del `Dockerfile` del proyecto y **PostgreSQL en otro contenedor** (imagen oficial `postgres`), conectados entre sí por una red de Docker. No se usa Nginx: la API se expone directamente en el puerto **8081** de la IP pública de la instancia.
+
+Topología:
+
+```
+                    EC2 (Amazon Linux 2023, t3.micro)
+Internet ──:8081──> Docker (bridge "bubblepat-net")
+                        ├── contenedor "postgres"  :5432
+                        └── contenedor "bubblepat" :8081  (Spring Boot / JRE 17)
+```
+
+### 1) Lanzar la instancia EC2
+
+1. Consola AWS → **EC2 → Launch instance**.
+2. Nombre: `bubblepat-backend`.
+3. AMI: **Amazon Linux 2023**.
+4. Tipo: **t3.micro** (Free Tier).
+5. Key pair: crear / elegir un `.pem`.
+6. Security Group con reglas **inbound**:
+
+   | Puerto | Origen    | Motivo           |
+   |--------|-----------|------------------|
+   | 22     | Mi IP     | SSH              |
+   | 8081   | 0.0.0.0/0 | Backend (público)|
+
+7. Lanzar la instancia.
+
+> **IPv4 pública dinámica:** esta EC2 **no** tiene Elastic IP asociada, por lo que la IP pública cambia **cada vez que la instancia se detiene/arranca**. Hay que consultar la IP vigente en la consola de AWS (o con el comando de la sección 8) cada vez que se reinicia, y actualizarla en `CORS_ALLOWED_ORIGINS` del `.env` y en la URL del frontend.
+
+### 2) Conectarse por SSH
+
+```bash
+chmod 400 bubblepat-key.pem
+ssh -i "bubblepat-key.pem" ec2-user@<IP-PÚBLICA-ACTUAL>
+```
+
+### 3) Instalar Docker
+
+```bash
+sudo dnf update -y
+sudo dnf install -y docker
+sudo systemctl enable --now docker
+sudo usermod -aG docker ec2-user
+exit   # y reconectar por SSH para que tome el grupo docker
+```
+
+### 4) Crear la red y levantar PostgreSQL (contenedor)
+
+```bash
+docker network create bubblepat-net
+
+docker run -d \
+  --name postgres \
+  --network bubblepat-net \
+  --restart unless-stopped \
+  -e POSTGRES_DB=bubblepat_db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=<TU_PASSWORD> \
+  -v pgdata:/var/lib/postgresql/data \
+  postgres:18
+```
+
+- `-v pgdata:...` **persiste** la base de datos aunque el contenedor se borre.
+- El backend se conectará a este contenedor por su nombre de host (`postgres`) dentro de la red `bubblepat-net`.
+
+### 5) Clonar el repo, definir variables y construir la imagen
+
+```bash
+git clone https://github.com/MAIauuwu/Proyecto_bubblePat.git
+cd Proyecto_bubblePat/backend
+
+# crear el .env con los valores de producción
+cp .env.example .env
+vim .env
+```
+
+Contenido del `.env` (los nombres coinciden con `application.properties`):
+
+```env
+DB_URL=jdbc:postgresql://postgres:5432/bubblepat_db
+DB_USER=postgres
+DB_PASSWORD=<TU_PASSWORD>
+API_NINJAS_KEY=tu_api_ninjas_key
+JWT_SECRET=cadena-secreta-larga-y-aleatoria-para-jwt
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://<IP-PÚBLICA-ACTUAL>:8081
+```
+
+> Ojo: en `DB_URL` se usa el **nombre del contenedor** (`postgres`) y no `localhost`, porque el backend corre en su propio contenedor dentro de `bubblepat-net`.
+
+Construir la imagen:
+
+```bash
+docker build -t bubblepat-backend .
+```
+
+### 6) Levantar el backend (conectado a PostgreSQL)
+
+```bash
+docker run -d \
+  --name bubblepat \
+  --network bubblepat-net \
+  --restart unless-stopped \
+  --env-file .env \
+  -p 8081:8081 \
+  bubblepat-backend
+```
+
+Verificar:
+
+```bash
+docker ps
+docker logs -f bubblepat
+curl http://localhost:8081/api/dogs/random
+```
+
+### 7) Scripts guardados con `vim`
+
+Para no recordar los comandos largos de Docker, se dejaron scripts en la instancia editados con `vim`:
+
+`~/scripts/start.sh` — levanta la red, PostgreSQL y el backend:
+
+```bash
+#!/bin/bash
+set -e
+docker network create bubblepat-net 2>/dev/null || true
+docker start postgres   2>/dev/null || docker run -d --name postgres --network bubblepat-net \
+    --restart unless-stopped -e POSTGRES_DB=bubblepat_db \
+    -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=<TU_PASSWORD> \
+    -v pgdata:/var/lib/postgresql/data postgres:18
+docker start bubblepat  2>/dev/null || docker run -d --name bubblepat --network bubblepat-net \
+    --restart unless-stopped --env-file ~/Proyecto_bubblePat/backend/.env \
+    -p 8081:8081 bubblepat-backend
+```
+
+`~/scripts/rebuild.sh` — reconstruye y reinicia el backend tras un cambio:
+
+```bash
+#!/bin/bash
+set -e
+cd ~/Proyecto_bubblePat/backend
+git pull
+docker build -t bubblepat-backend .
+docker stop bubblepat 2>/dev/null || true
+docker rm   bubblepat 2>/dev/null || true
+docker run -d --name bubblepat --network bubblepat-net \
+    --restart unless-stopped --env-file .env -p 8081:8081 bubblepat-backend
+docker logs -f bubblepat
+```
+
+Se crean con `vim ~/scripts/start.sh`, se pega el contenido, se guardan con `:wq` y se hacen ejecutables:
+
+```bash
+chmod +x ~/scripts/*.sh
+~/scripts/start.sh
+```
+
+> Como los contenedores se crearon con `--restart unless-stopped`, el backend y PostgreSQL se levantan automáticamente al reiniciar la EC2 sin necesidad de invocar el script.
+
+### 8) Endpoint público
+
+La API queda accesible desde internet por la **IP pública vigente** de la instancia, en el puerto `8081`:
+
+```
+http://<IP-PÚBLICA-ACTUAL>:8081/api
+```
+
+Como la instancia no tiene Elastic IP, la IPv4 pública **cambia en cada arranque**. Para averiguar la IP vigente desde dentro de la propia EC2:
+
+```bash
+curl http://checkip.amazonaws.com
+# o también:
+curl -s http://169.254.169.254/latest/meta-data/public-ipv4
+```
+
+Tras obtener la nueva IP, actualizar:
+
+1. El `CORS_ALLOWED_ORIGINS` dentro de `~/Proyecto_bubblePat/backend/.env` (con `vim`).
+2. El cliente REST / baseURL del **frontend** que apunta al backend.
+3. Reiniciar el contenedor: `docker restart bubblepat`.
+
+### Comandos útiles de operación
+
+```bash
+docker ps                          # contenedores activos
+docker logs -f bubblepat           # logs del backend
+docker logs -f postgres            # logs de la BD
+docker restart bubblepat           # reiniciar backend
+docker exec -it postgres psql -U postgres -d bubblepat_db   # entrar a la BD
+~/scripts/rebuild.sh               # actualizar imagen tras un nuevo commit
+sudo dnf update -y                 # actualizar paquetes del SO
+```
+
 ## Arquitectura del proyecto
 
 Arquitectura en capas clásica de Spring Boot:
