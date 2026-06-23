@@ -89,43 +89,34 @@ npm run dev
 
 ## Despliegue (producción)
 
-### Plataforma elegida: **Render**
-
-El proyecto se despliega en [Render](https://render.com), una plataforma PaaS (Platform as a Service) que aloja los tres componentes del sistema —base de datos, backend y frontend— en una misma cuenta y panel, lo que simplifica enormemente la operación respecto a combinar varios proveedores.
-
-**Justificación de la elección:**
-
-- **Todo en uno:** soporta PostgreSQL gestionado, web services (Java/Spring Boot) y sitios estáticos (frontend Vite) bajo el mismo proveedor. No es necesario coordinar entre Vercel + Railway + Neon, por ejemplo.
-- **Integración nativa con GitHub:** cada `push` desencadena un redeploy automático del servicio afectado, ideal para un flujo de trabajo ágil.
-- **Capa gratuita permanente:** permite mantener el proyecto en línea para la entrega académica sin costo, con PostgreSQL gratuito por 90 días y web/static services en plan Free.
-- **Detección automática del stack:** reconoce Maven (`pom.xml`) y Node/Vite sin configuración manual del runtime.
-- **Variables de entorno seguras:** las credenciales (`DB_*`, `JWT_SECRET`, `API_NINJAS_KEY`, `CORS_ALLOWED_ORIGINS`, `VITE_API_BASE_URL`) viven en el panel, nunca en el repositorio.
-- **Curva de aprendizaje baja:** interfaz web sencilla, comparable a Heroku, suficiente para un proyecto académico.
-
-> **Trade-off del plan Free:** los servicios "duermen" tras 15 minutos sin tráfico; el primer request tarda ~30–50 s en despertar. Es aceptable para fines demostrativos.
-
-### Servicios en Render
-
-| Servicio | Tipo | Carpeta | Rol |
-|----------|------|---------|-----|
-| `bubblepat-db` | PostgreSQL | — | Base de datos relacional gestionada |
-| `bubblepat-backend` | Web Service | `backend/` | API REST (Spring Boot) |
-| `bubblepat-frontend` | Static Site | `frontend/` | SPA (React + Vite) publicada desde `dist/` |
-
-### Preparación del código (ya aplicada)
-
-Para funcionar en la nube, el código se adaptó en los siguientes puntos:
-
-1. **Puerto dinámico en el backend** — Render inyecta el puerto por la variable `PORT`. En `application.properties`:
-   ```properties
-   server.port=${PORT:8081}
-   ```
-2. **CORS configurable** — los orígenes permitidos se controlan con `CORS_ALLOWED_ORIGINS` (en `SecurityConfig`), para autorizar el dominio público del frontend.
-3. **URL del backend configurable en el frontend** — `src/api/client.js` usa `VITE_API_BASE_URL` si está definida; si no, mantiene el proxy `/api` de Vite (desarrollo local).
-
-### Pasos del despliegue
-
-en configuracion por problemas tecnicos de ec2 
+ por localhost.                                                                                                                                              160Z                                    
+                                                                                                                                                                                    #Preparación del código (ya aplicada)                                                                                                                        Context                                 
+                                                                                                                                                                 31,895 tokens                           
+     Para funcionar en la nube, el código se adaptó en los siguientes puntos:                                                                                    3% used                                 
+                                                                                                                                                                 $0.00 spent                             
+     1. Puerto configurable en el backend — en application.properties:                                                                                                                                   
+        server.port=${PORT:8081}                                                                                                                                 ▼ MCP                                   
+        EC2 publica el servicio en 8081; la variable PORT queda como override opcional.                                                                          • web-reader SSE error: Was there a     
+     2. CORS configurable — los orígenes permitidos se controlan con CORS_ALLOWED_ORIGINS (en SecurityConfig), para autorizar el dominio/IP pública del            typo in the url or port?              
+        frontend. Cada vez que la IP de la EC2 cambia, se actualiza este valor en el .env.                                                                       • web-search-prime SSE error: Was       
+     3. URL del backend configurable en el frontend — src/api/client.js usa VITE_API_BASE_URL si está definida; si no, mantiene el proxy /api de Vite (            there a typo in the url or port?      
+        desarrollo local).                                                                                                                                       • zread SSE error: Unable to connect.   
+     4. Build multi-etapa del backend — el Dockerfile compila con Maven + JDK 17 y luego ejecuta el .jar con un JRE 17 liviano, reduciendo el tamaño de la          Is the computer able to access       
+        imagen final.                                                                                                                                              the url?                              
+                                                                                                                                                                                                         
+#Pasos del despliegue                                                                                                                                        LSP                                     
+                                                                                                                                                                 LSPs are disabled                       
+     1. Lanzar la instancia desde la consola de EC2: AMI Amazon Linux 2023, tipo t3.micro, key pair .pem y un Security Group que abra los puertos 22 (SSH) y                                             
+        8081 (backend) a internet.                                                                                                                                                                       
+     2. Instalar Docker en la instancia (dnf install docker) y agregar al usuario ec2-user al grupo docker.                                                                                              
+     3. Levantar PostgreSQL como contenedor de la imagen oficial postgres:18, con variables POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD y un volumen para                                              
+        persistir los datos.                                                                                                                                                                             
+     4. Clonar el repositorio (git clone), crear el .env con vim con todas las credenciales y construir la imagen del backend con docker build.                                                          
+     5. Ejecutar el backend en la misma red Docker, pasando el .env con --env-file y publicando el puerto 8081.                                                                                          
+     6. Automatizar con scripts (start.sh, rebuild.sh) guardados con vim en ~/scripts/ y hechos ejecutables con chmod +x. Los contenedores usan --restart                                                
+        unless-stopped, por lo que se reactivan solos tras un reinicio de la instancia.                                                                                                                  
+     7. Publicar la URL del backend como http://<IP-PÚBLICA-ACTUAL>:8081/api, actualizándola cuando la IP cambie.                                                                                        
+                                                                                         
 
 ## Arquitectura del proyecto
 
