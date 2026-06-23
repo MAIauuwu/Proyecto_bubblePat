@@ -90,22 +90,19 @@ npm run dev
 ## Despliegue (producción)
 
  por localhost.                                                                                                                                              160Z                                    
-                                                                                                                                                                                    #Preparación del código (ya aplicada)                                                                                                                        Context                                 
-                                                                                                                                                                 31,895 tokens                           
-     Para funcionar en la nube, el código se adaptó en los siguientes puntos:                                                                                    3% used                                 
-                                                                                                                                                                 $0.00 spent                             
+                                                                                                                                                                                    #Preparación del código (ya aplicada)                                                                                                                                                         
+     Para funcionar en la nube, el código se adaptó en los siguientes puntos:                                                                                                                                                                                                                                                                                                            
      1. Puerto configurable en el backend — en application.properties:                                                                                                                                   
-        server.port=${PORT:8081}                                                                                                                                 ▼ MCP                                   
-        EC2 publica el servicio en 8081; la variable PORT queda como override opcional.                                                                          • web-reader SSE error: Was there a     
-     2. CORS configurable — los orígenes permitidos se controlan con CORS_ALLOWED_ORIGINS (en SecurityConfig), para autorizar el dominio/IP pública del            typo in the url or port?              
-        frontend. Cada vez que la IP de la EC2 cambia, se actualiza este valor en el .env.                                                                       • web-search-prime SSE error: Was       
-     3. URL del backend configurable en el frontend — src/api/client.js usa VITE_API_BASE_URL si está definida; si no, mantiene el proxy /api de Vite (            there a typo in the url or port?      
-        desarrollo local).                                                                                                                                       • zread SSE error: Unable to connect.   
-     4. Build multi-etapa del backend — el Dockerfile compila con Maven + JDK 17 y luego ejecuta el .jar con un JRE 17 liviano, reduciendo el tamaño de la          Is the computer able to access       
-        imagen final.                                                                                                                                              the url?                              
+        server.port=${PORT:8081}                                                                                                                                                                 
+        EC2 publica el servicio en 8081; la variable PORT queda como override opcional.                                                                           
+     2. CORS configurable — los orígenes permitidos se controlan con CORS_ALLOWED_ORIGINS (en SecurityConfig), para autorizar el dominio/IP pública del                         
+        frontend. Cada vez que la IP de la EC2 cambia, se actualiza este valor en el .env.                                                                       
+     3. URL del backend configurable en el frontend — src/api/client.js usa VITE_API_BASE_URL si está definida; si no, mantiene el proxy /api de Vite (           
+        desarrollo local).                                                                                                                                      •
+     4. Build multi-etapa del backend — el Dockerfile compila con Maven + JDK 17 y luego ejecuta el .jar con un JRE 17 liviano, reduciendo el tamaño de la          
+        imagen final.                                                                                                                                             
                                                                                                                                                                                                          
-#Pasos del despliegue                                                                                                                                        LSP                                     
-                                                                                                                                                                 LSPs are disabled                       
+#Pasos del despliegue                                                                                                                                                                                                                                                                                                                                                                   
      1. Lanzar la instancia desde la consola de EC2: AMI Amazon Linux 2023, tipo t3.micro, key pair .pem y un Security Group que abra los puertos 22 (SSH) y                                             
         8081 (backend) a internet.                                                                                                                                                                       
      2. Instalar Docker en la instancia (dnf install docker) y agregar al usuario ec2-user al grupo docker.                                                                                              
