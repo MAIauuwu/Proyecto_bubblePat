@@ -105,6 +105,18 @@ export default function Dashboard() {
                       {pet.bestStreak > 0 && (
                         <p className="text-[11px] text-rose-300 mt-1">🏆 Récord {pet.bestStreak}</p>
                       )}
+                      {pet.wellness && (
+                        <p className={`text-[11px] mt-1 font-medium ${
+                          pet.wellness.score >= 60 ? 'text-emerald-500'
+                          : pet.wellness.score >= 35 ? 'text-amber-500' : 'text-rose-400'}`}>
+                          {pet.wellness.score}% bienestar
+                        </p>
+                      )}
+                      {pet.badges && (
+                        <p className="text-[11px] text-rose-300">
+                          🏅 {pet.badges.filter((b) => b.earned).length}/{pet.badges.length} logros
+                        </p>
+                      )}
                     </div>
                   </div>
 

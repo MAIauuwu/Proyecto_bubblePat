@@ -4,6 +4,25 @@ import api from '../api/client';
 import { getDogImageByBreed, getCatImageByBreed } from '../api/breeds';
 import logo from '../assets/BubblePat.png';
 
+const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-rose-300' };
+const statusWidth = { ok: '100%', warning: '55%', bad: '12%' };
+const statusText = { ok: 'text-emerald-600', warning: 'text-amber-600', bad: 'text-rose-500' };
+
+const timeAgo = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const secs = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (secs < 60) return 'recién';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return 'ayer';
+  if (days < 7) return `hace ${days} días`;
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+};
+
 export default function PetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -176,6 +195,18 @@ export default function PetDetail() {
   const doneTodayCount = routinesToday.filter((r) => r.doneToday).length;
   const totalRoutines = routinesToday.length;
 
+  const wellness = pet.wellness || { score: 0, level: '—', items: [] };
+  const scoreColor = wellness.score >= 85 ? 'text-emerald-600'
+    : wellness.score >= 60 ? 'text-amber-600'
+    : wellness.score >= 35 ? 'text-orange-500' : 'text-rose-500';
+
+  const badges = pet.badges || [];
+  const earnedBadges = badges.filter((b) => b.earned).length;
+
+  // Calendario de racha (read-only): últimos días contados, sin opción de "marcar hacia atrás".
+  const streakDays = (pet.streakDays || []).slice(-14);
+  const fmtDay = (iso) => new Date(iso + 'T00:00:00').getDate();
+
   const formatDateTime = (iso) => {
     if (!iso) return null;
     const d = new Date(iso);
@@ -195,6 +226,15 @@ export default function PetDetail() {
       case 'proximo': return { text: 'Próximo', cls: 'bg-yellow-100 text-yellow-700' };
       case 'futuro': return { text: 'Programado', cls: 'bg-sky-100 text-sky-600' };
       default: return { text: 'Sin fecha', cls: 'bg-gray-100 text-gray-500' };
+    }
+  };
+
+  const vaccineBadge = (v) => {
+    switch (v.status) {
+      case 'al_dia': return { text: 'Al día', cls: 'bg-emerald-100 text-emerald-600' };
+      case 'por_vencer': return { text: 'Por vencer', cls: 'bg-amber-100 text-amber-700' };
+      case 'vencida': return { text: 'Vencida', cls: 'bg-rose-100 text-rose-600' };
+      default: return { text: 'Sin próxima', cls: 'bg-gray-100 text-gray-500' };
     }
   };
 
@@ -238,8 +278,9 @@ export default function PetDetail() {
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6 mb-6">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        {/* ===== Header + racha ===== */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
           <div className="flex justify-between items-start">
             <div className="flex gap-4">
               {breedImage && (
@@ -272,6 +313,26 @@ export default function PetDetail() {
             </div>
           </div>
 
+          {/* Calendario de racha (read-only) */}
+          {streakDays.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-pink-100">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-rose-300 font-medium">
+                  🗓️ Racha desde {pet.streakStartDate} <span className="text-rose-200">(automática)</span>
+                </p>
+                <p className="text-[11px] text-rose-200">No se puede modificar ni retroceder</p>
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {streakDays.map((d, i) => (
+                  <div key={i} title={d}
+                    className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-300 to-amber-300 text-white text-[11px] font-bold flex items-center justify-center shadow-sm">
+                    {fmtDay(d)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 pt-4 border-t border-pink-100 grid grid-cols-3 gap-4 text-sm">
             {pet.weight && <div><span className="text-rose-200">Peso:</span> <span className="font-medium text-rose-400">{pet.weight} kg</span></div>}
             {pet.allergicTo && <div><span className="text-rose-200">Alérgico a:</span> <span className="font-medium text-rose-400">{pet.allergicTo}</span></div>}
@@ -279,13 +340,64 @@ export default function PetDetail() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-4">
-          {['routines', 'vaccinations', 'reminders'].map((tab) => (
+        {/* ===== Estado general (bienestar) ===== */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-rose-500">Estado general de {pet.name}</h2>
+            <div className="text-right">
+              <span className={`text-3xl font-bold ${scoreColor}`}>{wellness.score}%</span>
+              <p className={`text-xs font-medium ${scoreColor}`}>{wellness.level}</p>
+            </div>
+          </div>
+          {wellness.items.length === 0 ? (
+            <p className="text-sm text-rose-300">Agrega rutinas y vacunas para calcular el estado de {pet.name}.</p>
+          ) : (
+            <div className="space-y-3">
+              {wellness.items.map((it) => (
+                <div key={it.key}>
+                  <div className="flex justify-between items-center text-sm mb-1">
+                    <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
+                    <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
+                      style={{ width: statusWidth[it.status] || '12%' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Medallas ===== */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-rose-500">🏅 Logros</h2>
+            <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+            {badges.map((b) => (
+              <div key={b.key} title={b.description}
+                className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
+                  b.earned
+                    ? 'bg-gradient-to-br from-amber-50 to-rose-50 border-amber-200'
+                    : 'bg-gray-50 border-gray-100 opacity-50 grayscale'
+                }`}>
+                <span className="text-2xl">{b.earned ? b.emoji : '🔒'}</span>
+                <span className={`text-[11px] mt-1 font-medium ${b.earned ? 'text-rose-400' : 'text-gray-400'}`}>{b.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ===== Tabs ===== */}
+        <div className="flex gap-2 flex-wrap">
+          {['routines', 'vaccinations', 'reminders', 'activity'].map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
                 activeTab === tab ? 'bg-rose-300 text-white shadow-sm' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
               }`}>
-              {tab === 'routines' ? 'Rutinas' : tab === 'vaccinations' ? 'Vacunas' : 'Recordatorios'}
+              {tab === 'routines' ? 'Rutinas' : tab === 'vaccinations' ? 'Vacunas' : tab === 'reminders' ? 'Recordatorios' : 'Actividad'}
             </button>
           ))}
         </div>
@@ -298,10 +410,11 @@ export default function PetDetail() {
                 <select value={routineForm.type} onChange={(e) => setRoutineForm({...routineForm, type: e.target.value})}
                   required className={inputClass + ' w-full'}>
                   <option value="">Seleccionar</option>
-                  <option value="feeding">Alimentación</option>
-                  <option value="walk">Paseo</option>
-                  <option value="medicine">Medicina</option>
-                  <option value="bath">Baño</option>
+                  <option value="feeding">🍖 Alimentación</option>
+                  <option value="walk">🦮 Paseo</option>
+                  <option value="water">💧 Agua</option>
+                  <option value="medicine">💊 Medicina</option>
+                  <option value="bath">🛁 Baño</option>
                   <option value="other">Otro</option>
                 </select>
               </div>
@@ -320,7 +433,7 @@ export default function PetDetail() {
 
             {(!pet.routines || pet.routines.length === 0) && (
               <div className={`${cardClass} text-center text-rose-300 text-sm`}>
-                No hay rutinas. Agrega las actividades diarias (alimentación, paseo, medicina…) para alimentar la racha 🔥
+                No hay rutinas. Agrega las actividades diarias (alimentación, paseo, agua, medicina…) para alimentar la racha 🔥
               </div>
             )}
 
@@ -368,6 +481,7 @@ export default function PetDetail() {
                   onChange={(e) => setVaccineForm({...vaccineForm, notes: e.target.value})}
                   className={inputClass + ' col-span-2'} />
               </div>
+              <p className="text-[11px] text-rose-200 mt-2">💡 Si pones fecha de próxima dosis, se crea un recordatorio automático.</p>
               <div className="flex gap-2 mt-3">
                 <button type="submit" className={btnPrimary}>
                   {editingVaccine ? 'Guardar' : 'Agregar Vacuna'}
@@ -378,25 +492,31 @@ export default function PetDetail() {
               </div>
             </form>
 
-            {pet.vaccinations?.map((v) => (
-              <div key={v.id} className={cardClass}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-rose-400">{v.name}</h3>
-                    <div className="text-sm text-rose-300 mt-1">
-                      {v.appliedDate && <span>Aplicada: {v.appliedDate}</span>}
-                      {v.nextDoseDate && <span className="ml-4">Próxima dosis: {v.nextDoseDate}</span>}
-                      {v.vetName && <span className="ml-4">Vet: {v.vetName}</span>}
+            {pet.vaccinations?.map((v) => {
+              const vb = vaccineBadge(v);
+              return (
+                <div key={v.id} className={cardClass}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-rose-400">{v.name}</h3>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${vb.cls}`}>{vb.text}</span>
+                      </div>
+                      <div className="text-sm text-rose-300 mt-1">
+                        {v.appliedDate && <span>Aplicada: {v.appliedDate}</span>}
+                        {v.nextDoseDate && <span className="ml-4">Próxima dosis: {v.nextDoseDate}</span>}
+                        {v.vetName && <span className="ml-4">Vet: {v.vetName}</span>}
+                      </div>
+                      {v.notes && <p className="text-rose-200 text-sm mt-1">{v.notes}</p>}
                     </div>
-                    {v.notes && <p className="text-rose-200 text-sm mt-1">{v.notes}</p>}
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => startEditVaccine(v)} className={btnSecondary}>Editar</button>
-                    <button onClick={() => deleteVaccination(v.id)} className={btnDanger}>Eliminar</button>
+                    <div className="flex gap-2">
+                      <button onClick={() => startEditVaccine(v)} className={btnSecondary}>Editar</button>
+                      <button onClick={() => deleteVaccination(v.id)} className={btnDanger}>Eliminar</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -442,7 +562,7 @@ export default function PetDetail() {
 
             {sortedReminders.length === 0 && (
               <div className={`${cardClass} text-center text-rose-300 text-sm`}>
-                No hay recordatorios. Agrega uno para no olvidar citas, baños o medicinas.
+                No hay recordatorios. Agrega uno o registra una vacuna con próxima dosis.
               </div>
             )}
 
@@ -458,6 +578,11 @@ export default function PetDetail() {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
                           {badge.text}
                         </span>
+                        {r.automatic && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-500 font-medium">
+                            ⚙️ Automático
+                          </span>
+                        )}
                       </div>
                       {r.description && <p className="text-rose-300 text-sm mt-1">{r.description}</p>}
                       <p className="text-rose-200 text-xs mt-1">
@@ -481,6 +606,25 @@ export default function PetDetail() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <div className="space-y-3">
+            {(!pet.activityLog || pet.activityLog.length === 0) && (
+              <div className={`${cardClass} text-center text-rose-300 text-sm`}>
+                Aún no hay actividad registrada para {pet.name}.
+              </div>
+            )}
+            {pet.activityLog?.map((a) => (
+              <div key={a.id} className={`${cardClass} flex items-center gap-3`}>
+                <span className="text-2xl">{a.icon || '•'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-rose-400">{a.title}</p>
+                  <p className="text-[11px] text-rose-200">{timeAgo(a.createdAt)}</p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
