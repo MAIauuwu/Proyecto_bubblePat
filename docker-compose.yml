@@ -1,0 +1,37 @@
+# BubblePat — orquestación de contenedores (Backend + Frontend)
+# PostgreSQL se reutiliza desde el contenedor existente `postgres-db` (Plan C: no se crea uno nuevo).
+# El backend accede a la base de datos existente vía host.docker.internal.
+# Los secretos se leen desde un archivo .env en la raíz (NUNCA se commitea).
+# Uso:
+#   docker compose up -d --build
+#   docker compose ps
+#   docker compose logs -f backend
+#   docker compose down
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: bubblepat-backend
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DB_URL: jdbc:postgresql://host.docker.internal:5432/${POSTGRES_DB:-bubblepat_db}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      API_NINJAS_KEY: ${API_NINJAS_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
+    ports:
+      - "8082:8081"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: bubblepat-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"

@@ -1,0 +1,66 @@
+# ===== BubblePat — Despliegue automático en EC2 =====
+# En cada push a main (o manualmente), hace SSH a la EC2, actualiza el repo,
+# escribe el .env desde GitHub Secrets y reconstruye los contenedores con Docker Compose.
+
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Ruta donde está clonado el repo en la EC2 (ajústala si es distinta).
+      PROJECT_DIR: ~/Proyecto_bubblePat
+
+    steps:
+      - name: Deploy en EC2 vía SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          API_NINJAS_KEY: ${{ secrets.API_NINJAS_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,API_NINJAS_KEY,JWT_SECRET,CORS_ALLOWED_ORIGINS
+          script: |
+            set -e
+            cd $PROJECT_DIR
+
+            # 1) Actualizar el código (limpia no-trackeados que puedan chocar con origin).
+            #    -fd NO borra archivos ignorados (.env sobrevive).
+            git fetch --all
+            git clean -fd
+            git reset --hard origin/main
+
+            # 2) Escribir el .env desde los secrets (se sobrescribe cada deploy)
+            cat > .env <<EOF
+            POSTGRES_DB=$POSTGRES_DB
+            POSTGRES_USER=$POSTGRES_USER
+            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            API_NINJAS_KEY=$API_NINJAS_KEY
+            JWT_SECRET=$JWT_SECRET
+            CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
+            EOF
+            chmod 600 .env
+
+            # 3) Reconstruir y levantar los contenedores
+            docker compose up -d --build
+
+            # 4) Limpieza de imágenes antiguas
+            docker image prune -f
+
+            echo "Deploy finalizado correctamente."
