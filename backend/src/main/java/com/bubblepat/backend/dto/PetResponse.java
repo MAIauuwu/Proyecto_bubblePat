@@ -23,6 +23,12 @@ public class PetResponse {
     // "broken" (se rompió por inactividad) o "never" (nunca se ha registrado)
     private String streakStatus;
     private boolean routineDoneToday;
+    // Fecha de inicio de la racha CALCULADA (no editable) y días que la componen (solo lectura)
+    private LocalDate streakStartDate;
+    private List<LocalDate> streakDays;
+    private WellnessDTO wellness;
+    private List<ActivityLogResponse> activityLog;
+    private List<BadgeDTO> badges;
     private List<RoutineResponse> routines;
     private List<VaccinationResponse> vaccinations;
     private List<ReminderResponse> reminders;

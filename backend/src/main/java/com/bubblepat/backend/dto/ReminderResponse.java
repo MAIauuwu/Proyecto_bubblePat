@@ -14,4 +14,6 @@ public class ReminderResponse {
     // Estado relativo a hoy: "vencido", "hoy", "proximo", "futuro" o "sin_fecha"
     private String status;
     private long daysUntil;
+    // true si fue generado automáticamente (ej. desde una vacuna)
+    private boolean automatic;
 }

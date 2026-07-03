@@ -26,4 +26,8 @@ public class Reminder {
     private String description;
     private LocalDateTime reminderDate;
     private boolean completed = false;
+
+    // Origen del recordatorio: null = creado a mano;
+    // "VACCINE:<vaccinationId>" = generado automáticamente desde una vacuna.
+    private String source;
 }

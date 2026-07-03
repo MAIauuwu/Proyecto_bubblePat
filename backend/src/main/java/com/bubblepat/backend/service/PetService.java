@@ -1,6 +1,7 @@
 package com.bubblepat.backend.service;
 
 import com.bubblepat.backend.dto.*;
+import com.bubblepat.backend.model.ActivityLog;
 import com.bubblepat.backend.model.Pet;
 import com.bubblepat.backend.model.Routine;
 import com.bubblepat.backend.model.Vaccination;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,15 +24,17 @@ public class PetService {
     private final RoutineRepository routineRepository;
     private final VaccinationRepository vaccinationRepository;
     private final ReminderRepository reminderRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     public PetService(PetRepository petRepository, UserRepository userRepository,
                       RoutineRepository routineRepository, VaccinationRepository vaccinationRepository,
-                      ReminderRepository reminderRepository) {
+                      ReminderRepository reminderRepository, ActivityLogRepository activityLogRepository) {
         this.petRepository = petRepository;
         this.userRepository = userRepository;
         this.routineRepository = routineRepository;
         this.vaccinationRepository = vaccinationRepository;
         this.reminderRepository = reminderRepository;
+        this.activityLogRepository = activityLogRepository;
     }
 
     public List<PetResponse> listarPorUsuario(String email) {
@@ -62,8 +65,10 @@ public class PetService {
         pet.setAllergicTo(request.getAllergicTo());
         pet.setLastDeworming(request.getLastDeworming());
         pet.setUser(user);
+        pet = petRepository.save(pet);
 
-        return toResponse(petRepository.save(pet));
+        registrarActividad(pet, "WELCOME", "🐾", "¡" + pet.getName() + " se unió a BubblePat!");
+        return toResponse(pet);
     }
 
     public PetResponse actualizar(Long id, PetRequest request, String email) {
@@ -105,7 +110,9 @@ public class PetService {
             throw new RuntimeException("Ya completaste la rutina de hoy");
         }
 
+        int antes = pet.getDailyStreak();
         aplicarAvanceRacha(pet, today);
+        verificarHitoRacha(pet, antes, pet.getDailyStreak());
         return toResponse(pet);
     }
 
@@ -139,7 +146,9 @@ public class PetService {
                         && r.getCompletedAt().toLocalDate().equals(today));
         if (todasHoy) {
             if (!today.equals(pet.getLastRoutineDate())) {
+                int antes = pet.getDailyStreak();
                 aplicarAvanceRacha(pet, today);
+                verificarHitoRacha(pet, antes, pet.getDailyStreak());
             }
         } else if (today.equals(pet.getLastRoutineDate())) {
             revertirRacha(pet, today);
@@ -157,6 +166,31 @@ public class PetService {
             pet.setLastRoutineDate(null);
         }
         petRepository.save(pet);
+    }
+
+    // Registra un hito de racha en la línea de tiempo (3, 7, 14, 30, 60, 100 días).
+    private void verificarHitoRacha(Pet pet, int antes, int despues) {
+        Set<Integer> hitos = new HashSet<>(Arrays.asList(3, 7, 14, 30, 60, 100));
+        for (int h : hitos) {
+            if (antes < h && despues >= h) {
+                registrarActividad(pet, "STREAK", "🔥",
+                        "¡Racha de " + h + " día" + (h == 1 ? "" : "s") + "!");
+            }
+        }
+    }
+
+    // === Línea de tiempo ===
+    private void registrarActividad(Pet pet, String type, String icon, String title) {
+        try {
+            ActivityLog log = new ActivityLog();
+            log.setPet(pet);
+            log.setType(type);
+            log.setIcon(icon);
+            log.setTitle(title);
+            activityLogRepository.save(log);
+        } catch (Exception ignored) {
+            // La línea de tiempo es complementaria: no debe romper la operación principal.
+        }
     }
 
     // === RUTINAS ===
@@ -195,8 +229,18 @@ public class PetService {
         routine.setCompletedAt(LocalDateTime.now());
         routine = routineRepository.save(routine);
 
+        Pet pet = routine.getPet();
+
         // Sincroniza la racha: avanza si con esta rutina quedan TODAS hechas hoy.
-        sincronizarRacha(routine.getPet(), today);
+        int antes = pet.getDailyStreak();
+        sincronizarRacha(pet, today);
+        verificarHitoRacha(pet, antes, pet.getDailyStreak());
+
+        // Línea de tiempo: el sistema "trabaja para el usuario".
+        String tipo = etiquetaTipoRutina(routine.getType());
+        registrarActividad(pet, "ROUTINE", iconoTipoRutina(routine.getType()),
+                "Completaste \"" + tipo + "\"" + (routine.getDescription() != null && !routine.getDescription().isBlank()
+                        ? " · " + routine.getDescription() : ""));
 
         return toRoutineResponse(routine);
     }
@@ -233,7 +277,13 @@ public class PetService {
         vac.setNextDoseDate(request.getNextDoseDate());
         vac.setVetName(request.getVetName());
         vac.setNotes(request.getNotes());
-        return toVaccinationResponse(vaccinationRepository.save(vac));
+        vac = vaccinationRepository.save(vac);
+
+        // Automatización: si hay próxima dosis, se crea/actualiza el recordatorio vinculado.
+        sincronizarRecordatorioVacuna(pet, vac);
+
+        registrarActividad(pet, "VACCINE", "💉", "Vacuna \"" + vac.getName() + "\" registrada");
+        return toVaccinationResponse(vac);
     }
 
     public List<VaccinationResponse> listarVacunas(Long petId, String email) {
@@ -252,14 +302,50 @@ public class PetService {
         vac.setNextDoseDate(request.getNextDoseDate());
         vac.setVetName(request.getVetName());
         vac.setNotes(request.getNotes());
-        return toVaccinationResponse(vaccinationRepository.save(vac));
+        vac = vaccinationRepository.save(vac);
+
+        // Mantener el recordatorio vinculado sincronizado con la nueva info.
+        sincronizarRecordatorioVacuna(vac.getPet(), vac);
+        return toVaccinationResponse(vac);
     }
 
     public void eliminarVacuna(Long vaccinationId, String email) {
         Vaccination vac = vaccinationRepository.findById(vaccinationId)
                 .orElseThrow(() -> new RuntimeException("Vacuna no encontrada"));
         if (!vac.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
+        // Borrar también el recordatorio automático asociado (si existe).
+        reminderRepository.findBySource(sourceVacuna(vac.getId())).forEach(reminderRepository::delete);
         vaccinationRepository.delete(vac);
+    }
+
+    // Crea/actualiza/elimina el recordatorio automático "Próxima dosis" de una vacuna.
+    private void sincronizarRecordatorioVacuna(Pet pet, Vaccination vac) {
+        String source = sourceVacuna(vac.getId());
+        List<Reminder> existentes = reminderRepository.findBySource(source);
+
+        if (vac.getNextDoseDate() != null) {
+            LocalDateTime fecha = vac.getNextDoseDate().atTime(9, 0);
+            Reminder rem;
+            if (existentes.isEmpty()) {
+                rem = new Reminder();
+                rem.setPet(pet);
+                rem.setSource(source);
+                rem.setCompleted(false);
+            } else {
+                rem = existentes.get(0);
+            }
+            rem.setTitle("Próxima dosis: " + vac.getName());
+            rem.setDescription("Recordatorio automático generado desde la ficha de vacunación.");
+            rem.setReminderDate(fecha);
+            reminderRepository.save(rem);
+        } else {
+            // Sin próxima dosis: el recordatorio automático ya no aplica.
+            existentes.forEach(reminderRepository::delete);
+        }
+    }
+
+    private String sourceVacuna(Long vaccinationId) {
+        return "VACCINE:" + vaccinationId;
     }
 
     // === RECORDATORIOS ===
@@ -288,7 +374,10 @@ public class PetService {
                 .orElseThrow(() -> new RuntimeException("Recordatorio no encontrado"));
         if (!reminder.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
         reminder.setCompleted(true);
-        return toReminderResponse(reminderRepository.save(reminder));
+        reminder = reminderRepository.save(reminder);
+
+        registrarActividad(reminder.getPet(), "REMINDER", "🔔", "Recordatorio \"" + reminder.getTitle() + "\" completado");
+        return toReminderResponse(reminder);
     }
 
     public ReminderResponse editarRecordatorio(Long reminderId, ReminderRequest request, String email) {
@@ -349,10 +438,118 @@ public class PetService {
         r.setStreakStatus(streakStatus);
         r.setRoutineDoneToday(doneToday);
 
-        r.setRoutines(routineRepository.findByPetId(pet.getId()).stream().map(this::toRoutineResponse).collect(Collectors.toList()));
-        r.setVaccinations(vaccinationRepository.findByPetId(pet.getId()).stream().map(this::toVaccinationResponse).collect(Collectors.toList()));
-        r.setReminders(reminderRepository.findByPetIdOrderByReminderDateAsc(pet.getId()).stream().map(this::toReminderResponse).collect(Collectors.toList()));
+        // Días de racha (read-only): la fecha de inicio se CALCULA, no se guarda ni edita.
+        // Así es imposible "marcar" que la racha empezó antes de lo real.
+        if (effectiveStreak > 0 && last != null) {
+            LocalDate inicio = last.minusDays(effectiveStreak - 1L);
+            r.setStreakStartDate(inicio);
+            List<LocalDate> dias = new ArrayList<>();
+            for (int i = 0; i < effectiveStreak; i++) dias.add(inicio.plusDays(i));
+            r.setStreakDays(dias);
+        } else {
+            r.setStreakStartDate(null);
+            r.setStreakDays(Collections.emptyList());
+        }
+
+        List<Routine> rutinas = routineRepository.findByPetId(pet.getId());
+        List<Vaccination> vacunas = vaccinationRepository.findByPetId(pet.getId());
+        List<Reminder> recordatorios = reminderRepository.findByPetIdOrderByReminderDateAsc(pet.getId());
+
+        r.setRoutines(rutinas.stream().map(this::toRoutineResponse).collect(Collectors.toList()));
+        r.setVaccinations(vacunas.stream().map(this::toVaccinationResponse).collect(Collectors.toList()));
+        r.setReminders(recordatorios.stream().map(this::toReminderResponse).collect(Collectors.toList()));
+
+        // Indicador de bienestar y medallas (gamificación)
+        r.setWellness(calcularWellness(rutinas, vacunas, streakStatus));
+        r.setBadges(calcularMedallas(pet, rutinas, vacunas, r.getWellness().getScore(),
+                doneToday, todasRutinasHechasHoy(rutinas, today)));
+
+        r.setActivityLog(activityLogRepository.findTop30ByPetIdOrderByCreatedAtDesc(pet.getId()).stream()
+                .map(this::toActivityLogResponse).collect(Collectors.toList()));
         return r;
+    }
+
+    private boolean todasRutinasHechasHoy(List<Routine> rutinas, LocalDate today) {
+        if (rutinas.isEmpty()) return false;
+        return rutinas.stream().allMatch(r -> r.isCompleted() && r.getCompletedAt() != null
+                && r.getCompletedAt().toLocalDate().equals(today));
+    }
+
+    // === Bienestar: score 0-100 calculado desde actividades registradas ===
+    private WellnessDTO calcularWellness(List<Routine> rutinas, List<Vaccination> vacunas, String streakStatus) {
+        LocalDate today = LocalDate.now();
+        List<WellnessItem> items = new ArrayList<>();
+
+        // Categorías por tipo de rutina que la mascota tenga registradas.
+        Map<String, List<Routine>> porTipo = rutinas.stream().collect(Collectors.groupingBy(Routine::getType));
+        for (Map.Entry<String, List<Routine>> e : porTipo.entrySet()) {
+            String tipo = e.getKey();
+            if (tipo == null || tipo.equals("other")) continue; // "otro" no aporta al indicador
+            List<Routine> lista = e.getValue();
+            long hechasHoy = lista.stream().filter(r -> r.isCompleted() && r.getCompletedAt() != null
+                    && r.getCompletedAt().toLocalDate().equals(today)).count();
+            String status;
+            String detail;
+            if (hechasHoy == lista.size()) { status = "ok"; detail = "Al día"; }
+            else if (hechasHoy > 0) { status = "warning"; detail = (hechasHoy + "/" + lista.size() + " hoy"); }
+            else { status = "bad"; detail = "Pendiente hoy"; }
+            items.add(new WellnessItem(tipo, etiquetaTipoRutina(tipo), iconoTipoRutina(tipo), status, detail));
+        }
+
+        // Vacunas: solo si la mascota tiene alguna registrada.
+        if (!vacunas.isEmpty()) {
+            long vencidas = vacunas.stream().filter(v -> v.getNextDoseDate() != null && v.getNextDoseDate().isBefore(today)).count();
+            long porVencer = vacunas.stream().filter(v -> v.getNextDoseDate() != null
+                    && !v.getNextDoseDate().isBefore(today) && v.getNextDoseDate().isBefore(today.plusDays(31))).count();
+            String status;
+            String detail;
+            if (vencidas > 0) { status = "bad"; detail = vencidas + " vencida" + (vencidas == 1 ? "" : "s"); }
+            else if (porVencer > 0) { status = "warning"; detail = "Próxima dosis cerca"; }
+            else { status = "ok"; detail = "Al día"; }
+            items.add(new WellnessItem("vaccines", "Vacunas", "💉", status, detail));
+        }
+
+        // Felicidad: reflejada por la racha actual.
+        String felicidadStatus;
+        String felicidadDetail;
+        if ("done_today".equals(streakStatus)) { felicidadStatus = "ok"; felicidadDetail = "¡Rutina de hoy lista!"; }
+        else if ("active".equals(streakStatus)) { felicidadStatus = "ok"; felicidadDetail = "Racha activa"; }
+        else if ("broken".equals(streakStatus)) { felicidadStatus = "warning"; felicidadDetail = "Racha rota"; }
+        else { felicidadStatus = "warning"; felicidadDetail = "Aún sin racha"; }
+        items.add(new WellnessItem("happiness", "Felicidad", "😊", felicidadStatus, felicidadDetail));
+
+        // Score = promedio ponderado (ok=1, warning=0.5, bad=0)
+        double suma = 0;
+        for (WellnessItem it : items) {
+            suma += "ok".equals(it.getStatus()) ? 1.0 : ("warning".equals(it.getStatus()) ? 0.5 : 0.0);
+        }
+        int score = items.isEmpty() ? 0 : (int) Math.round(suma / items.size() * 100.0);
+
+        WellnessDTO w = new WellnessDTO();
+        w.setScore(score);
+        w.setLevel(score >= 85 ? "Excelente" : score >= 60 ? "Bien" : score >= 35 ? "Atención" : "Atrasado");
+        w.setItems(items);
+        return w;
+    }
+
+    // === Medallas dinámicas (gamificación) ===
+    private List<BadgeDTO> calcularMedallas(Pet pet, List<Routine> rutinas, List<Vaccination> vacunas,
+                                            int wellnessScore, boolean doneToday, boolean todasHoy) {
+        LocalDate today = LocalDate.now();
+        long vacunasVencidas = vacunas.stream().filter(v -> v.getNextDoseDate() != null && v.getNextDoseDate().isBefore(today)).count();
+        boolean vacunasAlDia = !vacunas.isEmpty() && vacunasVencidas == 0;
+
+        List<BadgeDTO> badges = new ArrayList<>();
+        badges.add(new BadgeDTO("welcome", "Bienvenida", "🐾", true, "Registraste a tu mascota"));
+        badges.add(new BadgeDTO("first_routine", "Primer paso", "⭐", !rutinas.isEmpty(), "Agrega tu primera rutina"));
+        badges.add(new BadgeDTO("first_vaccine", "Vacunado", "💉", !vacunas.isEmpty(), "Registra una vacuna"));
+        badges.add(new BadgeDTO("streak_3", "En racha", "🔥", pet.getBestStreak() >= 3, "Alcanza 3 días de racha"));
+        badges.add(new BadgeDTO("streak_7", "Semana perfecta", "🗓️", pet.getBestStreak() >= 7, "Alcanza 7 días de racha"));
+        badges.add(new BadgeDTO("streak_30", "Mes legendario", "👑", pet.getBestStreak() >= 30, "Alcanza 30 días de racha"));
+        badges.add(new BadgeDTO("all_today", "Día completo", "✅", todasHoy, "Completa todas las rutinas del día"));
+        badges.add(new BadgeDTO("cared", "Bien cuidado", "🌟", wellnessScore >= 80, "Bienestar sobre 80%"));
+        badges.add(new BadgeDTO("vaccinated", "Protegido", "🛡️", vacunasAlDia, "Mantén las vacunas al día"));
+        return badges;
     }
 
     private RoutineResponse toRoutineResponse(Routine r) {
@@ -375,6 +572,18 @@ public class PetService {
         resp.setNextDoseDate(v.getNextDoseDate());
         resp.setVetName(v.getVetName());
         resp.setNotes(v.getNotes());
+
+        LocalDate today = LocalDate.now();
+        if (v.getNextDoseDate() == null) {
+            resp.setStatus("sin_proxima");
+            resp.setDaysUntilNext(Long.MAX_VALUE);
+        } else {
+            long days = ChronoUnit.DAYS.between(today, v.getNextDoseDate());
+            resp.setDaysUntilNext(days);
+            if (days < 0) resp.setStatus("vencida");
+            else if (days <= 30) resp.setStatus("por_vencer");
+            else resp.setStatus("al_dia");
+        }
         return resp;
     }
 
@@ -385,6 +594,7 @@ public class PetService {
         resp.setDescription(rem.getDescription());
         resp.setReminderDate(rem.getReminderDate());
         resp.setCompleted(rem.isCompleted());
+        resp.setAutomatic(rem.getSource() != null);
 
         LocalDateTime now = LocalDateTime.now();
         if (rem.getReminderDate() == null) {
@@ -404,5 +614,40 @@ public class PetService {
             }
         }
         return resp;
+    }
+
+    private ActivityLogResponse toActivityLogResponse(ActivityLog log) {
+        ActivityLogResponse resp = new ActivityLogResponse();
+        resp.setId(log.getId());
+        resp.setType(log.getType());
+        resp.setTitle(log.getTitle());
+        resp.setIcon(log.getIcon());
+        resp.setCreatedAt(log.getCreatedAt());
+        return resp;
+    }
+
+    // Etiquetas e iconos humanos para los tipos de rutina (compartido por bienestar y línea de tiempo).
+    private String etiquetaTipoRutina(String tipo) {
+        if (tipo == null) return "Rutina";
+        return switch (tipo) {
+            case "feeding" -> "Alimentación";
+            case "walk" -> "Paseo";
+            case "water" -> "Agua";
+            case "medicine" -> "Medicina";
+            case "bath" -> "Baño";
+            default -> tipo;
+        };
+    }
+
+    private String iconoTipoRutina(String tipo) {
+        if (tipo == null) return "✅";
+        return switch (tipo) {
+            case "feeding" -> "🍖";
+            case "walk" -> "🦮";
+            case "water" -> "💧";
+            case "medicine" -> "💊";
+            case "bath" -> "🛁";
+            default -> "✅";
+        };
     }
 }
