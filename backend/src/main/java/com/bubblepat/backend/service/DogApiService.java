@@ -5,100 +5,60 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class DogApiService {
 
-    private static final String BASE_URL = "https://dog.ceo/api";
-
-    private static final Map<String, String> BREED_SLUGS = buildSlugMap();
-
-    private static Map<String, String> buildSlugMap() {
-        Map<String, String> m = new HashMap<>();
-        m.put("golden retriever", "retriever/golden");
-        m.put("labrador retriever", "retriever/labrador");
-        m.put("german shepherd", "germanshepherd");
-        m.put("french bulldog", "bulldog/french");
-        m.put("english bulldog", "bulldog/english");
-        m.put("boston bulldog", "bulldog/boston");
-        m.put("border collie", "collie/border");
-        m.put("australian shepherd", "australian/shepherd");
-        m.put("siberian husky", "husky");
-        m.put("great dane", "dane/great");
-        m.put("bernese mountain", "mountain/bernese");
-        m.put("swiss mountain", "mountain/swiss");
-        m.put("scottish deerhound", "deerhound/scottish");
-        m.put("norwegian buhund", "buhund/norwegian");
-        m.put("norwegian elkhound", "elkhound/norwegian");
-        m.put("italian greyhound", "greyhound/italian");
-        m.put("cocker spaniel", "spaniel/cocker");
-        m.put("irish setter", "setter/irish");
-        m.put("english setter", "setter/english");
-        m.put("gordon setter", "setter/gordon");
-        m.put("miniature pinscher", "pinscher/miniature");
-        m.put("miniature schnauzer", "schnauzer/miniature");
-        m.put("giant schnauzer", "schnauzer/giant");
-        m.put("shetland sheepdog", "sheepdog/shetland");
-        m.put("english sheepdog", "sheepdog/english");
-        m.put("yorkshire terrier", "terrier/yorkshire");
-        m.put("staffordshire bullterrier", "bullterrier/staffordshire");
-        m.put("rhodesian ridgeback", "ridgeback/rhodesian");
-        m.put("caucasian ovcharka", "ovcharka/caucasian");
-        m.put("italian segugio", "segugio/italian");
-        m.put("japanese spitz", "spitz/japanese");
-        m.put("spanish waterdog", "waterdog/spanish");
-        m.put("irish wolfhound", "wolfhound/irish");
-        m.put("afghan hound", "hound/afghan");
-        m.put("basset hound", "hound/basset");
-        m.put("blood hound", "hound/blood");
-        m.put("english hound", "hound/english");
-        m.put("ibizan hound", "hound/ibizan");
-        m.put("plott hound", "hound/plott");
-        m.put("walker hound", "hound/walker");
-        return m;
-    }
+    // The Dog API (no requiere key para bajo volumen). Reemplaza a dog.ceo.
+    private static final String BASE_URL = "https://api.thedogapi.com/v1";
 
     @Autowired
     private RestTemplate restTemplate;
 
+    // Cache ligera de razas (id <-> nombre) para resolver imágenes por raza.
+    private volatile List<Map<String, Object>> breedsCache = null;
+
     @SuppressWarnings("unchecked")
     public Map<String, List<String>> getAllBreeds() {
-        Map<String, Object> response = restTemplate.getForObject(
-                BASE_URL + "/breeds/list/all", Map.class);
-        if (response != null && "success".equals(response.get("status"))) {
-            return (Map<String, List<String>>) response.get("message");
+        Map<String, List<String>> out = new LinkedHashMap<>();
+        for (Map<String, Object> b : fetchBreeds()) {
+            Object name = b.get("name");
+            if (name != null) out.put(name.toString(), List.of());
         }
-        return Map.of();
+        return out;
     }
 
+    @SuppressWarnings("unchecked")
     public BreedImageDTO getRandomImageByBreed(String breed) {
-        String slug = toSlug(breed);
-        Map<String, Object> response = restTemplate.getForObject(
-                BASE_URL + "/breed/" + slug + "/images/random", Map.class);
-        if (response != null && "success".equals(response.get("status"))) {
-            BreedImageDTO dto = new BreedImageDTO();
-            dto.setImageUrl((String) response.get("message"));
-            dto.setBreed(breed);
-            return dto;
+        if (breed == null || breed.isBlank()) return getRandomImage();
+        try {
+            Integer breedId = findBreedId(breed);
+            if (breedId != null) {
+                List<Map<String, Object>> list = restTemplate.getForObject(
+                        BASE_URL + "/images/search?breed_ids=" + breedId + "&limit=1", List.class);
+                String url = firstImageUrl(list);
+                if (url != null) {
+                    return dto(url, breed);
+                }
+            }
+        } catch (Exception ignored) {
         }
-        return null;
+        // Si no se encuentra la raza o falla la API, devolvemos un perro aleatorio.
+        return getRandomImage();
     }
 
+    @SuppressWarnings("unchecked")
     public BreedImageDTO getRandomImage() {
-        Map<String, Object> response = restTemplate.getForObject(
-                BASE_URL + "/breeds/image/random", Map.class);
-        if (response != null && "success".equals(response.get("status"))) {
-            BreedImageDTO dto = new BreedImageDTO();
-            dto.setImageUrl((String) response.get("message"));
-            String url = (String) response.get("message");
-            String[] parts = url.split("/");
-            if (parts.length > 4) {
-                dto.setBreed(parts[4].replace("-", " "));
+        try {
+            List<Map<String, Object>> list = restTemplate.getForObject(
+                    BASE_URL + "/images/search?limit=1", List.class);
+            String url = firstImageUrl(list);
+            if (url != null) {
+                String name = firstBreedName(list);
+                return dto(url, name);
             }
-            return dto;
+        } catch (Exception ignored) {
         }
         return null;
     }
@@ -112,9 +72,65 @@ public class DogApiService {
         }
     }
 
-    private String toSlug(String breed) {
-        if (breed == null) return "";
-        String lower = breed.toLowerCase().trim();
-        return BREED_SLUGS.getOrDefault(lower, lower.replace(" ", "-"));
+    // === Helpers ===
+
+    private BreedImageDTO dto(String url, String breed) {
+        BreedImageDTO d = new BreedImageDTO();
+        d.setImageUrl(url);
+        d.setBreed(breed);
+        return d;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String firstImageUrl(List<Map<String, Object>> list) {
+        if (list == null || list.isEmpty()) return null;
+        Object url = list.get(0).get("url");
+        return url != null ? url.toString() : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String firstBreedName(List<Map<String, Object>> list) {
+        if (list == null || list.isEmpty()) return "perro";
+        Object breeds = list.get(0).get("breeds");
+        if (breeds instanceof List<?> bList && !bList.isEmpty()) {
+            Object first = ((List<Object>) breeds).get(0);
+            if (first instanceof Map<?, ?> bMap) {
+                Object name = bMap.get("name");
+                if (name != null) return name.toString().toLowerCase();
+            }
+        }
+        return "perro";
+    }
+
+    @SuppressWarnings("unchecked")
+    private synchronized List<Map<String, Object>> fetchBreeds() {
+        if (breedsCache != null) return breedsCache;
+        try {
+            List<Map<String, Object>> list = restTemplate.getForObject(BASE_URL + "/breeds?limit=200", List.class);
+            breedsCache = list != null ? list : Collections.emptyList();
+        } catch (Exception e) {
+            breedsCache = Collections.emptyList();
+        }
+        return breedsCache;
+    }
+
+    private Integer findBreedId(String breed) {
+        String target = breed.toLowerCase().trim();
+        for (Map<String, Object> b : fetchBreeds()) {
+            Object name = b.get("name");
+            if (name != null && name.toString().toLowerCase().equals(target)) {
+                Object id = b.get("id");
+                if (id instanceof Number) return ((Number) id).intValue();
+            }
+        }
+        // Coincidencia parcial si no hay exacta.
+        for (Map<String, Object> b : fetchBreeds()) {
+            Object name = b.get("name");
+            if (name != null && (name.toString().toLowerCase().contains(target) || target.contains(name.toString().toLowerCase()))) {
+                Object id = b.get("id");
+                if (id instanceof Number) return ((Number) id).intValue();
+            }
+        }
+        return null;
     }
 }

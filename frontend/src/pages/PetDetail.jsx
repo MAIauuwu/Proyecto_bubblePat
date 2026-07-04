@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/client';
-import { getDogImageByBreed, getCatImageByBreed } from '../api/breeds';
+import { getDogImageByBreed, getCatImageByBreed, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
 import logo from '../assets/BubblePat.png';
 
 const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-rose-300' };
@@ -325,8 +325,12 @@ export default function PetDetail() {
         <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
           <div className="flex justify-between items-start">
             <div className="flex gap-4">
-              {breedImage && (
+              {breedImage ? (
                 <img src={breedImage} alt={pet.breed} className="w-24 h-24 rounded-xl object-cover border border-pink-100" />
+              ) : (
+                <div className={`w-24 h-24 rounded-xl bg-gradient-to-br ${SPECIES_GRADIENT[pet.species] || SPECIES_GRADIENT.Otro} flex items-center justify-center border border-pink-100`}>
+                  <span className="text-4xl">{SPECIES_EMOJI[pet.species] || SPECIES_EMOJI.Otro}</span>
+                </div>
               )}
               <div>
                 <h1 className="text-3xl font-bold text-rose-500">{pet.name}</h1>

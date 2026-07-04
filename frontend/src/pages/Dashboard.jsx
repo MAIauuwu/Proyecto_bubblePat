@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import logo from '../assets/BubblePat.png';
-import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage } from '../api/breeds';
+import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
 
 const statCard = 'bg-white/70 backdrop-blur-sm rounded-xl border border-pink-100 p-4 text-center shadow-sm';
 
@@ -130,8 +130,12 @@ export default function Dashboard() {
 
               return (
                 <div key={pet.id} className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 overflow-hidden hover:shadow-md hover:border-rose-200 transition">
-                  {petImages[pet.id] && (
+                  {petImages[pet.id] ? (
                     <img src={petImages[pet.id]} alt={pet.name} className="w-full h-40 object-cover" />
+                  ) : (
+                    <div className={`w-full h-40 bg-gradient-to-br ${SPECIES_GRADIENT[pet.species] || SPECIES_GRADIENT.Otro} flex items-center justify-center`}>
+                      <span className="text-6xl">{SPECIES_EMOJI[pet.species] || SPECIES_EMOJI.Otro}</span>
+                    </div>
                   )}
                   <div className="p-5">
                     <div className="flex justify-between items-start mb-3">
