@@ -9,6 +9,7 @@ import com.bubblepat.backend.model.Reminder;
 import com.bubblepat.backend.model.User;
 import com.bubblepat.backend.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -89,12 +90,16 @@ public class PetService {
         return toResponse(petRepository.save(pet));
     }
 
+    @Transactional
     public void eliminar(Long id, String email) {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mascota no encontrada"));
         if (!pet.getUser().getEmail().equals(email)) {
             throw new RuntimeException("No tienes permiso");
         }
+        // Borrar primero la línea de tiempo: tiene FK a pets y no está en cascada,
+        // de lo contrario el DELETE de la mascota falla por restricción de integridad.
+        activityLogRepository.deleteByPetId(pet.getId());
         petRepository.delete(pet);
     }
 

@@ -13,6 +13,7 @@ export default function PetForm() {
     weight: '', allergicTo: '', lastDeworming: ''
   });
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [breedSuggestions, setBreedSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef(null);
@@ -83,7 +84,9 @@ export default function PetForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // evita doble envío (duplicados)
     setError('');
+    setSubmitting(true);
     try {
       const payload = {
         ...form,
@@ -99,6 +102,7 @@ export default function PetForm() {
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al guardar mascota');
+      setSubmitting(false);
     }
   };
 
@@ -187,13 +191,13 @@ export default function PetForm() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={() => navigate('/')}
-              className="flex-1 border border-pink-200 text-rose-300 py-2 rounded-lg hover:bg-pink-50 transition font-medium">
+            <button type="button" onClick={() => navigate('/')} disabled={submitting}
+              className="flex-1 border border-pink-200 text-rose-300 py-2 rounded-lg hover:bg-pink-50 transition font-medium disabled:opacity-50">
               Cancelar
             </button>
-            <button type="submit"
-              className="flex-1 bg-rose-300 text-white py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm">
-              {isEditing ? 'Guardar Cambios' : 'Guardar'}
+            <button type="submit" disabled={submitting}
+              className="flex-1 bg-rose-300 text-white py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm disabled:opacity-60">
+              {submitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar')}
             </button>
           </div>
         </form>
