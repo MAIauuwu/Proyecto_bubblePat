@@ -5,6 +5,8 @@ import api from '../api/client';
 import logo from '../assets/BubblePat.png';
 import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage } from '../api/breeds';
 
+const statCard = 'bg-white/70 backdrop-blur-sm rounded-xl border border-pink-100 p-4 text-center shadow-sm';
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [pets, setPets] = useState([]);
@@ -51,6 +53,16 @@ export default function Dashboard() {
     }
   };
 
+  // === Métricas globales del panel ===
+  const totalPets = pets.length;
+  const pendingToday = pets.reduce((acc, p) => acc + (p.reminders || []).filter(
+    (r) => !r.completed && ['vencido', 'hoy', 'proximo'].includes(r.status)).length, 0);
+  const avgWellness = totalPets ? Math.round(pets.reduce((acc, p) => acc + (p.wellness?.score || 0), 0) / totalPets) : 0;
+  const activeStreaks = pets.filter((p) => (p.dailyStreak || 0) > 0).length;
+
+  const wellnessColor = (s) => s >= 85 ? 'text-emerald-600' : s >= 60 ? 'text-amber-600' : s >= 35 ? 'text-orange-500' : 'text-rose-500';
+  const wellnessBar = (s) => s >= 85 ? 'bg-emerald-400' : s >= 60 ? 'bg-amber-400' : s >= 35 ? 'bg-orange-400' : 'bg-rose-400';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
       <nav className="bg-white/60 backdrop-blur-sm border-b border-pink-100">
@@ -66,17 +78,40 @@ export default function Dashboard() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-rose-500">Mis Mascotas</h2>
-          <Link
-            to="/pets/new"
-            className="bg-rose-300 text-white px-6 py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm"
-          >
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-rose-500">Panel principal</h2>
+            <p className="text-rose-300 text-sm">Resumen del cuidado de tus mascotas</p>
+          </div>
+          <Link to="/pets/new"
+            className="bg-rose-300 text-white px-6 py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm">
             + Agregar Mascota
           </Link>
         </div>
 
-        {pets.length === 0 ? (
+        {/* Resumen global */}
+        {totalPets > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            <div className={statCard}>
+              <p className="text-2xl font-bold text-rose-500">{totalPets}</p>
+              <p className="text-xs text-rose-300">Mascotas</p>
+            </div>
+            <div className={statCard}>
+              <p className={`text-2xl font-bold ${wellnessColor(avgWellness)}`}>{avgWellness}%</p>
+              <p className="text-xs text-rose-300">Bienestar promedio</p>
+            </div>
+            <div className={statCard}>
+              <p className="text-2xl font-bold text-amber-500">🔥 {activeStreaks}</p>
+              <p className="text-xs text-rose-300">Rachas activas</p>
+            </div>
+            <div className={statCard}>
+              <p className={`text-2xl font-bold ${pendingToday > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>{pendingToday}</p>
+              <p className="text-xs text-rose-300">Recordatorios pendientes</p>
+            </div>
+          </div>
+        )}
+
+        {totalPets === 0 ? (
           <div className="text-center py-16">
             <p className="text-rose-300 text-lg mb-4">No tienes mascotas registradas</p>
             <Link to="/pets/new" className="text-rose-400 hover:underline text-lg">
@@ -85,65 +120,88 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pets.map((pet) => (
-              <div key={pet.id} className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 overflow-hidden hover:shadow-md hover:border-rose-200 transition">
-                {petImages[pet.id] && (
-                  <img src={petImages[pet.id]} alt={pet.name} className="w-full h-40 object-cover" />
-                )}
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <Link to={`/pets/${pet.id}`} className="text-xl font-bold text-rose-500 hover:text-rose-600">
-                        {pet.name}
-                      </Link>
-                      <p className="text-rose-300">{pet.species} {pet.breed && `· ${pet.breed}`}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="bg-amber-50 text-amber-500 px-3 py-1 rounded-full text-sm font-bold inline-block">
-                        🔥 {pet.dailyStreak}
+            {pets.map((pet) => {
+              const score = pet.wellness?.score || 0;
+              const pendientes = (pet.reminders || []).filter(
+                (r) => !r.completed && ['vencido', 'hoy', 'proximo'].includes(r.status));
+              const rutinasHoy = (pet.routines || []).filter((r) => r.appliesToday);
+              const hechasHoy = rutinasHoy.filter((r) => r.doneToday).length;
+              const earnedBadges = (pet.badges || []).filter((b) => b.earned).length;
+
+              return (
+                <div key={pet.id} className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 overflow-hidden hover:shadow-md hover:border-rose-200 transition">
+                  {petImages[pet.id] && (
+                    <img src={petImages[pet.id]} alt={pet.name} className="w-full h-40 object-cover" />
+                  )}
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <Link to={`/pets/${pet.id}`} className="text-xl font-bold text-rose-500 hover:text-rose-600">
+                          {pet.name}
+                        </Link>
+                        <p className="text-rose-300 text-sm">{pet.species} {pet.breed && `· ${pet.breed}`}</p>
                       </div>
-                      {pet.bestStreak > 0 && (
-                        <p className="text-[11px] text-rose-300 mt-1">🏆 Récord {pet.bestStreak}</p>
-                      )}
-                      {pet.wellness && (
-                        <p className={`text-[11px] mt-1 font-medium ${
-                          pet.wellness.score >= 60 ? 'text-emerald-500'
-                          : pet.wellness.score >= 35 ? 'text-amber-500' : 'text-rose-400'}`}>
-                          {pet.wellness.score}% bienestar
-                        </p>
-                      )}
-                      {pet.badges && (
-                        <p className="text-[11px] text-rose-300">
-                          🏅 {pet.badges.filter((b) => b.earned).length}/{pet.badges.length} logros
-                        </p>
-                      )}
+                      <div className="text-right">
+                        <div className="bg-amber-50 text-amber-500 px-3 py-1 rounded-full text-sm font-bold inline-block">
+                          🔥 {pet.dailyStreak}
+                        </div>
+                        {pet.bestStreak > 0 && (
+                          <p className="text-[11px] text-rose-300 mt-1">🏆 Récord {pet.bestStreak}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {pet.weight && <p className="text-rose-200 text-sm">Peso: {pet.weight} kg</p>}
+                    {/* Bienestar */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-rose-300">Bienestar</span>
+                        <span className={`font-bold ${wellnessColor(score)}`}>{score}% · {pet.wellness?.level || '—'}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-pink-100 overflow-hidden">
+                        <div className={`h-full rounded-full ${wellnessBar(score)}`} style={{ width: `${score}%` }} />
+                      </div>
+                    </div>
 
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => handleStreak(pet.id)}
-                      disabled={pet.routineDoneToday}
-                      className={`flex-1 py-2 rounded-lg transition text-sm font-medium ${
-                        pet.routineDoneToday
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-emerald-200 text-emerald-700 hover:bg-emerald-300'
-                      }`}
-                    >
-                      {pet.routineDoneToday ? '✓ Hecho hoy' : 'Completar Rutina'}
-                    </button>
-                    <Link
-                      to={`/pets/${pet.id}`}
-                      className="flex-1 bg-rose-100 text-rose-500 py-2 rounded-lg hover:bg-rose-200 transition text-sm font-medium text-center"
-                    >
-                      Ver Detalle
-                    </Link>
+                    {/* Resumen rápido */}
+                    <div className="flex flex-wrap gap-2 text-[11px] mb-3">
+                      {rutinasHoy.length > 0 && (
+                        <span className={`px-2 py-1 rounded-full font-medium ${
+                          hechasHoy === rutinasHoy.length ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}>
+                          ✓ {hechasHoy}/{rutinasHoy.length} rutinas hoy
+                        </span>
+                      )}
+                      {pendientes.length > 0 && (
+                        <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-600 font-medium">
+                          🔔 {pendientes.length} recordatorio{pendientes.length === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-500 font-medium">
+                        🏅 {earnedBadges}/{pet.badges?.length || 0} logros
+                      </span>
+                    </div>
+
+                    {pet.weight && <p className="text-rose-200 text-sm mb-3">Peso: {pet.weight} kg</p>}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleStreak(pet.id)}
+                        disabled={pet.routineDoneToday || rutinasHoy.length === 0}
+                        className={`flex-1 py-2 rounded-lg transition text-sm font-medium ${
+                          pet.routineDoneToday || rutinasHoy.length === 0
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-emerald-200 text-emerald-700 hover:bg-emerald-300'
+                        }`}>
+                        {pet.routineDoneToday ? '✓ Hecho hoy' : 'Completar Rutina'}
+                      </button>
+                      <Link to={`/pets/${pet.id}`}
+                        className="flex-1 bg-rose-100 text-rose-500 py-2 rounded-lg hover:bg-rose-200 transition text-sm font-medium text-center">
+                        Ver Detalle
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

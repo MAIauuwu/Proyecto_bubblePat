@@ -19,9 +19,18 @@ public class Routine {
     private Pet pet;
 
     @Column(nullable = false)
-    private String type; // "sentir", "comer", "jugar", "pasear", "dormir"
+    private String type; // "feeding", "walk", "water", "medicine", "bath", "other"
 
     private String description;
+
+    // Horario (formato "HH:mm", ej. "08:00"). Opcional: adaptable al cuidador.
+    private String startTime;
+    private String endTime;
+
+    // Días de la semana en que aplica (3 letras: "MON,TUE,WED,THU,FRI,SAT,SUN").
+    // null o vacío = aplica todos los días.
+    private String daysOfWeek;
+
     private LocalDateTime completedAt;
     private boolean completed = false;
 }

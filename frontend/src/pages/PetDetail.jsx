@@ -23,6 +23,19 @@ const timeAgo = (iso) => {
   return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 };
 
+// Días de la semana (código 3 letras backend <-> etiqueta ES corta)
+const DAYS = [
+  { code: 'MON', label: 'L' }, { code: 'TUE', label: 'M' }, { code: 'WED', label: 'X' },
+  { code: 'THU', label: 'J' }, { code: 'FRI', label: 'V' }, { code: 'SAT', label: 'S' }, { code: 'SUN', label: 'D' },
+];
+const DAY_ES = { MON: 'L', TUE: 'M', WED: 'X', THU: 'J', FRI: 'V', SAT: 'S', SUN: 'D' };
+const formatSchedule = (r) => {
+  const parts = [];
+  if (r.startTime || r.endTime) parts.push(`🕑 ${r.startTime || '?'}–${r.endTime || '?'}`);
+  if (r.daysOfWeek) parts.push(r.daysOfWeek.split(',').map((d) => DAY_ES[d] || d).join(' '));
+  return parts.join(' · ');
+};
+
 export default function PetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,7 +43,8 @@ export default function PetDetail() {
   const [activeTab, setActiveTab] = useState('routines');
   const [breedImage, setBreedImage] = useState(null);
 
-  const [routineForm, setRoutineForm] = useState({ type: '', description: '' });
+  const [routineForm, setRoutineForm] = useState({ type: '', description: '', startTime: '', endTime: '', days: [] });
+  const emptyRoutineForm = { type: '', description: '', startTime: '', endTime: '', days: [] };
   const [editingRoutine, setEditingRoutine] = useState(null);
   const [vaccineForm, setVaccineForm] = useState({ name: '', appliedDate: '', nextDoseDate: '', vetName: '', notes: '' });
   const [editingVaccine, setEditingVaccine] = useState(null);
@@ -69,24 +83,44 @@ export default function PetDetail() {
 
   const addRoutine = async (e) => {
     e.preventDefault();
+    const payload = {
+      type: routineForm.type,
+      description: routineForm.description || null,
+      startTime: routineForm.startTime || null,
+      endTime: routineForm.endTime || null,
+      daysOfWeek: routineForm.days && routineForm.days.length ? routineForm.days.join(',') : null,
+    };
     if (editingRoutine) {
-      await api.put(`/pets/routines/${editingRoutine}`, routineForm);
+      await api.put(`/pets/routines/${editingRoutine}`, payload);
       setEditingRoutine(null);
     } else {
-      await api.post(`/pets/${id}/routines`, routineForm);
+      await api.post(`/pets/${id}/routines`, payload);
     }
-    setRoutineForm({ type: '', description: '' });
+    setRoutineForm(emptyRoutineForm);
     loadPet();
+  };
+
+  const toggleDay = (code) => {
+    setRoutineForm((f) => ({
+      ...f,
+      days: f.days.includes(code) ? f.days.filter((d) => d !== code) : [...f.days, code],
+    }));
   };
 
   const startEditRoutine = (r) => {
     setEditingRoutine(r.id);
-    setRoutineForm({ type: r.type, description: r.description || '' });
+    setRoutineForm({
+      type: r.type,
+      description: r.description || '',
+      startTime: r.startTime || '',
+      endTime: r.endTime || '',
+      days: r.daysOfWeek ? r.daysOfWeek.split(',') : [],
+    });
   };
 
   const cancelEditRoutine = () => {
     setEditingRoutine(null);
-    setRoutineForm({ type: '', description: '' });
+    setRoutineForm(emptyRoutineForm);
   };
 
   const completeRoutine = async (routineId) => {
@@ -264,9 +298,17 @@ export default function PetDetail() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
       <nav className="bg-white/60 backdrop-blur-sm border-b border-pink-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="BubblePat" className="h-10" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/')}
+              className="flex items-center gap-1 text-rose-400 hover:text-rose-500 font-medium text-sm transition"
+              title="Volver al panel">
+              <span className="text-lg">←</span>
+              <span className="hidden sm:inline">Atrás</span>
+            </button>
+            <Link to="/" className="flex items-center gap-2">
+              <img src={logo} alt="BubblePat" className="h-10" />
+            </Link>
+          </div>
           <div className="flex gap-4">
             <Link to={`/pets/${id}/edit`} className="text-rose-300 hover:text-rose-400 font-medium text-sm">
               Editar Mascota
@@ -404,31 +446,58 @@ export default function PetDetail() {
 
         {activeTab === 'routines' && (
           <div className="space-y-4">
-            <form onSubmit={addRoutine} className={`${cardClass} flex gap-3 items-end`}>
-              <div className="flex-1">
-                <label className="block text-xs text-rose-300 mb-1">Tipo</label>
-                <select value={routineForm.type} onChange={(e) => setRoutineForm({...routineForm, type: e.target.value})}
-                  required className={inputClass + ' w-full'}>
-                  <option value="">Seleccionar</option>
-                  <option value="feeding">🍖 Alimentación</option>
-                  <option value="walk">🦮 Paseo</option>
-                  <option value="water">💧 Agua</option>
-                  <option value="medicine">💊 Medicina</option>
-                  <option value="bath">🛁 Baño</option>
-                  <option value="other">Otro</option>
-                </select>
+            <form onSubmit={addRoutine} className={cardClass}>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-rose-300 mb-1">Tipo *</label>
+                  <select value={routineForm.type} onChange={(e) => setRoutineForm({...routineForm, type: e.target.value})}
+                    required className={inputClass + ' w-full'}>
+                    <option value="">Seleccionar</option>
+                    <option value="feeding">🍖 Alimentación</option>
+                    <option value="walk">🦮 Paseo</option>
+                    <option value="water">💧 Agua</option>
+                    <option value="medicine">💊 Medicina</option>
+                    <option value="bath">🛁 Baño</option>
+                    <option value="other">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-rose-300 mb-1">Descripción</label>
+                  <input value={routineForm.description} onChange={(e) => setRoutineForm({...routineForm, description: e.target.value})}
+                    className={inputClass + ' w-full'} />
+                </div>
+                <div>
+                  <label className="block text-xs text-rose-300 mb-1">Hora inicio</label>
+                  <input type="time" value={routineForm.startTime}
+                    onChange={(e) => setRoutineForm({...routineForm, startTime: e.target.value})}
+                    className={inputClass + ' w-full'} />
+                </div>
+                <div>
+                  <label className="block text-xs text-rose-300 mb-1">Hora fin</label>
+                  <input type="time" value={routineForm.endTime}
+                    onChange={(e) => setRoutineForm({...routineForm, endTime: e.target.value})}
+                    className={inputClass + ' w-full'} />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-rose-300 mb-1">Días (vacío = todos los días)</label>
+                  <div className="flex gap-1 flex-wrap">
+                    {DAYS.map((d) => (
+                      <button type="button" key={d.code} onClick={() => toggleDay(d.code)}
+                        className={`w-9 h-9 rounded-lg text-sm font-bold transition ${
+                          routineForm.days.includes(d.code) ? 'bg-rose-300 text-white' : 'bg-pink-50 text-rose-300 border border-pink-100 hover:bg-rose-100'
+                        }`}>{d.label}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <label className="block text-xs text-rose-300 mb-1">Descripción</label>
-                <input value={routineForm.description} onChange={(e) => setRoutineForm({...routineForm, description: e.target.value})}
-                  className={inputClass + ' w-full'} />
+              <div className="flex gap-2 mt-3">
+                <button type="submit" className={btnPrimary}>
+                  {editingRoutine ? 'Guardar' : 'Agregar'}
+                </button>
+                {editingRoutine && (
+                  <button type="button" onClick={cancelEditRoutine} className={btnSecondary}>Cancelar</button>
+                )}
               </div>
-              <button type="submit" className={btnPrimary}>
-                {editingRoutine ? 'Guardar' : 'Agregar'}
-              </button>
-              {editingRoutine && (
-                <button type="button" onClick={cancelEditRoutine} className={btnSecondary}>Cancelar</button>
-              )}
             </form>
 
             {(!pet.routines || pet.routines.length === 0) && (
@@ -437,27 +506,36 @@ export default function PetDetail() {
               </div>
             )}
 
-            {pet.routines?.map((r) => (
-              <div key={r.id} className={`${cardClass} flex justify-between items-center ${r.doneToday ? 'opacity-60' : ''}`}>
-                <div>
-                  <span className="font-medium text-rose-400">{r.type}</span>
-                  {r.description && <span className="text-rose-200 ml-2">· {r.description}</span>}
-                  {r.doneToday && <span className="text-emerald-400 ml-2 text-sm">✓ Hecha hoy</span>}
-                </div>
-                <div className="flex gap-2 items-center">
-                  {!r.doneToday && (
-                    <>
+            {pet.routines?.map((r) => {
+              const schedule = formatSchedule(r);
+              return (
+                <div key={r.id} className={`${cardClass} ${r.doneToday ? 'opacity-60' : ''}`}>
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-rose-400">{r.typeLabel}</span>
+                        {!r.appliesToday && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">No aplica hoy</span>
+                        )}
+                        {r.doneToday && <span className="text-emerald-500 text-sm">✓ Hecha hoy</span>}
+                      </div>
+                      {r.description && <p className="text-rose-200 text-sm mt-0.5">{r.description}</p>}
+                      {schedule && <p className="text-rose-300 text-xs mt-1">{schedule}</p>}
+                    </div>
+                    <div className="flex gap-2 items-center shrink-0">
+                      {r.appliesToday && !r.doneToday && (
+                        <button onClick={() => completeRoutine(r.id)}
+                          className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-sm hover:bg-emerald-300 transition">
+                          Completar
+                        </button>
+                      )}
                       <button onClick={() => startEditRoutine(r)} className={btnSecondary}>Editar</button>
-                      <button onClick={() => completeRoutine(r.id)}
-                        className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-sm hover:bg-emerald-300 transition">
-                        Completar
-                      </button>
-                    </>
-                  )}
-                  <button onClick={() => deleteRoutine(r.id)} className={btnDanger}>Eliminar</button>
+                      <button onClick={() => deleteRoutine(r.id)} className={btnDanger}>Eliminar</button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -609,24 +687,57 @@ export default function PetDetail() {
           </div>
         )}
 
-        {activeTab === 'activity' && (
-          <div className="space-y-3">
-            {(!pet.activityLog || pet.activityLog.length === 0) && (
-              <div className={`${cardClass} text-center text-rose-300 text-sm`}>
-                Aún no hay actividad registrada para {pet.name}.
+        {activeTab === 'activity' && (() => {
+          const agendaHoy = (pet.routines || [])
+            .filter((r) => r.appliesToday)
+            .sort((a, b) => (a.startTime || '99:99').localeCompare(b.startTime || '99:99'));
+          return (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-rose-400">📋 Agenda de hoy</h3>
+                {agendaHoy.length === 0 ? (
+                  <div className={`${cardClass} text-center text-rose-300 text-sm`}>No hay rutinas programadas para hoy.</div>
+                ) : agendaHoy.map((r) => (
+                  <div key={r.id} className={`${cardClass} flex justify-between items-center gap-3 ${r.doneToday ? 'opacity-60' : ''}`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-rose-400 bg-pink-50 px-2 py-0.5 rounded">
+                          {r.startTime ? `${r.startTime}${r.endTime ? `–${r.endTime}` : ''}` : '—'}
+                        </span>
+                        <span className="font-medium text-rose-400">{r.typeLabel}</span>
+                        {r.doneToday && <span className="text-emerald-500 text-sm">✓</span>}
+                      </div>
+                      {r.description && <p className="text-rose-200 text-sm mt-0.5">{r.description}</p>}
+                    </div>
+                    <div className="flex gap-2 items-center shrink-0">
+                      {!r.doneToday && (
+                        <button onClick={() => completeRoutine(r.id)}
+                          className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-xs hover:bg-emerald-300 transition">
+                          Completar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-            {pet.activityLog?.map((a) => (
-              <div key={a.id} className={`${cardClass} flex items-center gap-3`}>
-                <span className="text-2xl">{a.icon || '•'}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-rose-400">{a.title}</p>
-                  <p className="text-[11px] text-rose-200">{timeAgo(a.createdAt)}</p>
-                </div>
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-rose-400">🕒 Actividad reciente</h3>
+                {(!pet.activityLog || pet.activityLog.length === 0) ? (
+                  <div className={`${cardClass} text-center text-rose-300 text-sm`}>Aún no hay actividad registrada para {pet.name}.</div>
+                ) : pet.activityLog.map((a) => (
+                  <div key={a.id} className={`${cardClass} flex items-center gap-3`}>
+                    <span className="text-2xl">{a.icon || '•'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-rose-400">{a.title}</p>
+                      <p className="text-[11px] text-rose-200">{timeAgo(a.createdAt)}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

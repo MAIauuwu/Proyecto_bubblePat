@@ -141,7 +141,10 @@ public class PetService {
     private void sincronizarRacha(Pet pet, LocalDate today) {
         List<Routine> rutinas = routineRepository.findByPetId(pet.getId());
         if (rutinas.isEmpty()) return; // sin rutinas no hay racha
-        boolean todasHoy = rutinas.stream().allMatch(r ->
+        // Solo cuentan las rutinas programadas para hoy (según daysOfWeek).
+        List<Routine> deHoy = rutinas.stream().filter(r -> aplicaHoy(r, today)).collect(Collectors.toList());
+        if (deHoy.isEmpty()) return;
+        boolean todasHoy = deHoy.stream().allMatch(r ->
                 r.isCompleted() && r.getCompletedAt() != null
                         && r.getCompletedAt().toLocalDate().equals(today));
         if (todasHoy) {
@@ -179,6 +182,15 @@ public class PetService {
         }
     }
 
+    // Indica si una rutina aplica el día dado según su daysOfWeek
+    // (null/vacío = todos los días; "MON,TUE,..." = solo esos días).
+    private boolean aplicaHoy(Routine r, LocalDate today) {
+        String d = r.getDaysOfWeek();
+        if (d == null || d.isBlank()) return true;
+        String hoy3 = today.getDayOfWeek().name().substring(0, 3); // MON, TUE, ...
+        return Arrays.asList(d.split(",")).contains(hoy3);
+    }
+
     // === Línea de tiempo ===
     private void registrarActividad(Pet pet, String type, String icon, String title) {
         try {
@@ -203,6 +215,9 @@ public class PetService {
         routine.setPet(pet);
         routine.setType(request.getType());
         routine.setDescription(request.getDescription());
+        routine.setStartTime(request.getStartTime());
+        routine.setEndTime(request.getEndTime());
+        routine.setDaysOfWeek(request.getDaysOfWeek());
         routine = routineRepository.save(routine);
 
         // Si hoy ya estaba toda la racha completada, agregar una rutina pendiente
@@ -251,6 +266,9 @@ public class PetService {
         if (!routine.getPet().getUser().getEmail().equals(email)) throw new RuntimeException("No tienes permiso");
         routine.setType(request.getType());
         routine.setDescription(request.getDescription());
+        routine.setStartTime(request.getStartTime());
+        routine.setEndTime(request.getEndTime());
+        routine.setDaysOfWeek(request.getDaysOfWeek());
         return toRoutineResponse(routineRepository.save(routine));
     }
 
@@ -470,8 +488,9 @@ public class PetService {
     }
 
     private boolean todasRutinasHechasHoy(List<Routine> rutinas, LocalDate today) {
-        if (rutinas.isEmpty()) return false;
-        return rutinas.stream().allMatch(r -> r.isCompleted() && r.getCompletedAt() != null
+        List<Routine> deHoy = rutinas.stream().filter(r -> aplicaHoy(r, today)).collect(Collectors.toList());
+        if (deHoy.isEmpty()) return false;
+        return deHoy.stream().allMatch(r -> r.isCompleted() && r.getCompletedAt() != null
                 && r.getCompletedAt().toLocalDate().equals(today));
     }
 
@@ -480,8 +499,9 @@ public class PetService {
         LocalDate today = LocalDate.now();
         List<WellnessItem> items = new ArrayList<>();
 
-        // Categorías por tipo de rutina que la mascota tenga registradas.
-        Map<String, List<Routine>> porTipo = rutinas.stream().collect(Collectors.groupingBy(Routine::getType));
+        // Categorías por tipo de rutina que la mascota tenga registradas y apliquen hoy.
+        Map<String, List<Routine>> porTipo = rutinas.stream()
+                .filter(r -> aplicaHoy(r, today)).collect(Collectors.groupingBy(Routine::getType));
         for (Map.Entry<String, List<Routine>> e : porTipo.entrySet()) {
             String tipo = e.getKey();
             if (tipo == null || tipo.equals("other")) continue; // "otro" no aporta al indicador
@@ -556,7 +576,12 @@ public class PetService {
         RoutineResponse resp = new RoutineResponse();
         resp.setId(r.getId());
         resp.setType(r.getType());
+        resp.setTypeLabel(etiquetaTipoRutina(r.getType()));
         resp.setDescription(r.getDescription());
+        resp.setStartTime(r.getStartTime());
+        resp.setEndTime(r.getEndTime());
+        resp.setDaysOfWeek(r.getDaysOfWeek());
+        resp.setAppliesToday(aplicaHoy(r, LocalDate.now()));
         resp.setCompletedAt(r.getCompletedAt());
         resp.setCompleted(r.isCompleted());
         resp.setDoneToday(r.isCompleted() && r.getCompletedAt() != null
