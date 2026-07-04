@@ -486,6 +486,8 @@ public class PetService {
         r.setWellness(calcularWellness(rutinas, vacunas, streakStatus));
         r.setBadges(calcularMedallas(pet, rutinas, vacunas, r.getWellness().getScore(),
                 doneToday, todasRutinasHechasHoy(rutinas, today)));
+        // Asistente BubblePat: mensajes inteligentes
+        r.setInsights(calcularInsights(pet, rutinas, vacunas, recordatorios, streakStatus, effectiveStreak, doneToday));
 
         r.setActivityLog(activityLogRepository.findTop30ByPetIdOrderByCreatedAtDesc(pet.getId()).stream()
                 .map(this::toActivityLogResponse).collect(Collectors.toList()));
@@ -575,6 +577,129 @@ public class PetService {
         badges.add(new BadgeDTO("cared", "Bien cuidado", "🌟", wellnessScore >= 80, "Bienestar sobre 80%"));
         badges.add(new BadgeDTO("vaccinated", "Protegido", "🛡️", vacunasAlDia, "Mantén las vacunas al día"));
         return badges;
+    }
+
+    // === Asistente BubblePat: mensajes inteligentes por reglas ===
+    private List<InsightDTO> calcularInsights(Pet pet, List<Routine> rutinas, List<Vaccination> vacunas,
+                                              List<Reminder> recordatorios, String streakStatus,
+                                              int effectiveStreak, boolean doneToday) {
+        LocalDate today = LocalDate.now();
+        List<InsightDTO> out = new ArrayList<>();
+
+        // 1) Rachas (ánimo / felicitación)
+        if (effectiveStreak >= 25) {
+            out.add(new InsightDTO("praise", "🔥", "¡Excelente trabajo!",
+                    "Llevas " + effectiveStreak + " días consecutivos cuidando a " + pet.getName() + "."));
+        } else if (effectiveStreak >= 7) {
+            out.add(new InsightDTO("praise", "🎉", "¡Vas genial!",
+                    effectiveStreak + " días de racha, " + pet.getName() + " te lo agradece."));
+        } else if (effectiveStreak >= 3) {
+            out.add(new InsightDTO("praise", "👏", "¡Sigue así!",
+                    "Ya son " + effectiveStreak + " días seguidos. ¡No rompas la racha!"));
+        }
+
+        // 2) Vacunas por vencer o vencidas
+        for (Vaccination v : vacunas) {
+            if (v.getNextDoseDate() == null) continue;
+            long days = ChronoUnit.DAYS.between(today, v.getNextDoseDate());
+            if (days < 0) {
+                out.add(new InsightDTO("alert", "💉", "Vacuna vencida",
+                        "La vacuna \"" + v.getName() + "\" de " + pet.getName() + " está vencida. Revisa su próxima dosis."));
+            } else if (days <= 7) {
+                out.add(new InsightDTO("warning", "💉", "Vacuna por vencer",
+                        "La vacuna \"" + v.getName() + "\" vence en " + days + " día" + (days == 1 ? "" : "s") + "."));
+            }
+        }
+
+        // 3) Recordatorios pendientes (vencidos / hoy)
+        long pendientes = recordatorios.stream().filter(r -> !r.isCompleted() && r.getReminderDate() != null
+                && !r.getReminderDate().toLocalDate().isAfter(today)).count();
+        if (pendientes > 0) {
+            out.add(new InsightDTO("warning", "🔔", "Recordatorios pendientes",
+                    "Tienes " + pendientes + " recordatorio" + (pendientes == 1 ? "" : "s") + " pendiente" + (pendientes == 1 ? "" : "s") + " para " + pet.getName() + "."));
+        }
+
+        // 4) Baño: días desde el último baño registrado (solo si la mascota tiene rutina de baño)
+        boolean tieneBano = rutinas.stream().anyMatch(r -> "bath".equals(r.getType()));
+        if (tieneBano) {
+            LocalDate ultimoBano = rutinas.stream()
+                    .filter(r -> "bath".equals(r.getType()) && r.isCompleted() && r.getCompletedAt() != null)
+                    .map(r -> r.getCompletedAt().toLocalDate())
+                    .max(LocalDate::compareTo).orElse(null);
+            if (ultimoBano == null) {
+                out.add(new InsightDTO("info", "🛁", "Sin baños registrados",
+                        "Aún no registras baños para " + pet.getName() + ". ¿Es hora del primero?"));
+            } else {
+                long dias = ChronoUnit.DAYS.between(ultimoBano, today);
+                if (dias >= 10) {
+                    out.add(new InsightDTO("alert", "🛁", "Baño pendiente",
+                            "Hace " + dias + " días que no registras un baño para " + pet.getName() + "."));
+                }
+            }
+        }
+
+        // 5) Rutinas de hoy
+        List<Routine> deHoy = rutinas.stream().filter(r -> aplicaHoy(r, today)).collect(Collectors.toList());
+        if (!deHoy.isEmpty()) {
+            long hechas = deHoy.stream().filter(r -> r.isCompleted() && r.getCompletedAt() != null
+                    && r.getCompletedAt().toLocalDate().equals(today)).count();
+            if (hechas == deHoy.size()) {
+                out.add(new InsightDTO("praise", "✅", "¡Día completo!",
+                        "Hoy cuidaste de " + pet.getName() + ". Completaste todas las rutinas del día."));
+            } else {
+                long faltan = deHoy.size() - hechas;
+                out.add(new InsightDTO("info", "📋", "Rutinas de hoy",
+                        "Te faltan " + faltan + " rutina" + (faltan == 1 ? "" : "s") + " para completar el día de " + pet.getName() + "."));
+            }
+        } else if (rutinas.isEmpty()) {
+            out.add(new InsightDTO("info", "✨", "Empieza a cuidar a " + pet.getName(),
+                    "Agrega rutinas diarias (alimentación, paseo, agua...) para que " + pet.getName() + " esté siempre al día."));
+        }
+
+        // 6) Peso sin registrar
+        if (pet.getWeight() == null) {
+            out.add(new InsightDTO("info", "⚖️", "Peso sin registrar",
+                    "Registra el peso de " + pet.getName() + " para vigilar su salud."));
+        }
+
+        // 7) Tip de cuidado (uno por especie, rotando por día para que no sea repetitivo)
+        String tip = tipDeCuidado(pet, today);
+        if (tip != null) {
+            out.add(new InsightDTO("tip", "💡", "Tip de cuidado", tip));
+        }
+
+        // Orden: alert > warning > praise > info > tip. Máximo 6 mensajes.
+        Map<String, Integer> orden = new HashMap<>();
+        orden.put("alert", 0);
+        orden.put("warning", 1);
+        orden.put("praise", 2);
+        orden.put("info", 3);
+        orden.put("tip", 4);
+        out.sort(Comparator.comparingInt(i -> orden.getOrDefault(i.getType(), 9)));
+        if (out.size() > 6) out.subList(6, out.size()).clear();
+        return out;
+    }
+
+    private String tipDeCuidado(Pet pet, LocalDate today) {
+        List<String> tips;
+        if ("Perro".equals(pet.getSpecies())) {
+            tips = List.of(
+                    "Un paseo diario mantiene a " + pet.getName() + " feliz y saludable.",
+                    "Revisa las patitas y orejas de " + pet.getName() + " cada semana.",
+                    "La hidratación es clave: siempre deja agua fresca disponible.");
+        } else if ("Gato".equals(pet.getSpecies())) {
+            tips = List.of(
+                    "Un rascador evita que " + pet.getName() + " dañe los muebles.",
+                    "Cepilla a " + pet.getName() + " para reducir las bolas de pelo.",
+                    "A los gatos les encanta el juego y las alturas para trepar.");
+        } else {
+            tips = List.of(
+                    "La constancia en el cuidado fortalece el vínculo con " + pet.getName() + ".",
+                    "Un ambiente limpio y tranquilo ayuda a " + pet.getName() + " a estar sano.",
+                    "Observa cambios en el comportamiento de " + pet.getName() + "; son señales de salud.");
+        }
+        int idx = (int) ((pet.getId() + today.getDayOfYear()) % tips.size());
+        return tips.get(idx);
     }
 
     private RoutineResponse toRoutineResponse(Routine r) {

@@ -69,7 +69,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
       <nav className="bg-white/60 backdrop-blur-sm border-b border-pink-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <img src={logo} alt="BubblePat" className="h-10" />
+          <img src={logo} alt="BubblePat" className="h-14" />
           <div className="flex items-center gap-4">
             <span className="text-rose-300">Hola, {user?.name}</span>
             <button onClick={logout} className="text-rose-400 hover:text-rose-500 font-medium">
@@ -185,6 +185,12 @@ export default function Dashboard() {
                         🏅 {earnedBadges}/{pet.badges?.length || 0} logros
                       </span>
                     </div>
+
+                    {pet.insights?.[0] && (
+                      <div className="text-[11px] mb-3 px-2.5 py-1.5 rounded-lg bg-pink-50 border border-pink-100 text-rose-500 leading-snug">
+                        <span className="mr-1">{pet.insights[0].icon}</span>{pet.insights[0].message}
+                      </div>
+                    )}
 
                     {pet.weight && <p className="text-rose-200 text-sm mb-3">Peso: {pet.weight} kg</p>}
 

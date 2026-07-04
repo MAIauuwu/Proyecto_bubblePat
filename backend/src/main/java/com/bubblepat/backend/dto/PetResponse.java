@@ -29,6 +29,8 @@ public class PetResponse {
     private WellnessDTO wellness;
     private List<ActivityLogResponse> activityLog;
     private List<BadgeDTO> badges;
+    // Mensajes inteligentes del "Asistente BubblePat" (reglas: rachas, vacunas, baños, tips)
+    private List<InsightDTO> insights;
     private List<RoutineResponse> routines;
     private List<VaccinationResponse> vaccinations;
     private List<ReminderResponse> reminders;

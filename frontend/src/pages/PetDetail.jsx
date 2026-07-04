@@ -8,6 +8,15 @@ const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-ro
 const statusWidth = { ok: '100%', warning: '55%', bad: '12%' };
 const statusText = { ok: 'text-emerald-600', warning: 'text-amber-600', bad: 'text-rose-500' };
 
+// Estilos del Asistente BubblePat según tipo de mensaje
+const insightStyle = {
+  praise: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  alert: 'bg-rose-50 border-rose-200 text-rose-700',
+  warning: 'bg-amber-50 border-amber-200 text-amber-700',
+  info: 'bg-sky-50 border-sky-200 text-sky-700',
+  tip: 'bg-purple-50 border-purple-200 text-purple-700',
+};
+
 const timeAgo = (iso) => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -310,7 +319,7 @@ export default function PetDetail() {
               <span className="hidden sm:inline">Atrás</span>
             </button>
             <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="BubblePat" className="h-10" />
+              <img src={logo} alt="BubblePat" className="h-14" />
             </Link>
           </div>
           <div className="flex gap-4">
@@ -389,6 +398,30 @@ export default function PetDetail() {
             {pet.lastDeworming && <div><span className="text-rose-200">Desparasitación:</span> <span className="font-medium text-rose-400">{pet.lastDeworming}</span></div>}
           </div>
         </div>
+
+        {/* ===== Asistente BubblePat (mensajes inteligentes) ===== */}
+        {pet.insights && pet.insights.length > 0 && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border-2 border-pink-200 p-6 bubble-pop">
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logo} alt="BubblePat" className="h-12 w-12 rounded-full bg-pink-50 p-1 border border-pink-100" />
+              <div>
+                <h2 className="text-lg font-bold text-rose-500 leading-tight">Asistente BubblePat</h2>
+                <p className="text-xs text-rose-300">Pensando en {pet.name}…</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {pet.insights.map((ins, i) => (
+                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${insightStyle[ins.type] || insightStyle.info}`}>
+                  <span className="text-xl shrink-0">{ins.icon}</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">{ins.title}</p>
+                    <p className="text-sm opacity-90">{ins.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ===== Estado general (bienestar) ===== */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">

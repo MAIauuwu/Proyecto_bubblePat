@@ -25,7 +25,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
       <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg w-full max-w-md border border-pink-100">
-        <img src={logo} alt="BubblePat" className="w-48 mx-auto mb-4" />
+        <img src={logo} alt="BubblePat" className="w-64 mx-auto mb-4" />
         <h2 className="text-xl text-center text-rose-300 mb-8">Crea tu Cuenta</h2>
 
         {error && <div className="bg-rose-50 text-rose-500 p-3 rounded-lg mb-4 border border-rose-100">{error}</div>}
