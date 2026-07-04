@@ -56,7 +56,10 @@ jobs:
             # 3) Reconstruir y levantar los contenedores
             docker compose up -d --build
 
-            # 4) Limpieza de imágenes antiguas
-            docker image prune -f
+            # 4) Limpieza: en un disco de 8GB la caché de build y las imágenes viejas
+            #    llenan el disco y rompen los próximos deploys. -a conserva solo lo que
+            #    usan los contenedores activos (no toca volúmenes ni la BD).
+            docker image prune -af
+            docker builder prune -af
 
             echo "Deploy finalizado correctamente."
