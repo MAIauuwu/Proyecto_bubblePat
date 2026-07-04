@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/client';
-import { getDogImageByBreed, getCatImageByBreed, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
+import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
 import logo from '../assets/BubblePat.png';
 
 const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-rose-300' };
@@ -59,15 +59,19 @@ export default function PetDetail() {
     try {
       const { data } = await api.get(`/pets/${id}`);
       setPet(data);
-      if (data.breed) {
-        let img = null;
+      let img = null;
+      try {
         if (data.species === 'Perro') {
-          img = await getDogImageByBreed(data.breed);
+          img = data.breed ? await getDogImageByBreed(data.breed) : null;
+          if (!img) img = await getRandomDogImage();
         } else if (data.species === 'Gato') {
-          img = await getCatImageByBreed(data.breed);
+          img = data.breed ? await getCatImageByBreed(data.breed) : null;
+          if (!img) img = await getRandomCatImage();
+        } else {
+          img = getGenericSpeciesImage(data.species, data.id);
         }
-        setBreedImage(img);
-      }
+      } catch {}
+      setBreedImage(img);
     } catch (err) {
       alert('Error al cargar mascota');
       navigate('/');

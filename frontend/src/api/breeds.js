@@ -13,6 +13,15 @@ export const SPECIES_GRADIENT = {
   Otro: 'from-gray-200 to-rose-200',
 };
 
+// Foto real genérica por especie (para Ave, Conejo, Pez, Otro) vía LoremFlickr.
+// 'lock' hace que la imagen sea estable por mascota (no cambie en cada recarga).
+const SPECIES_TAG = { Ave: 'bird', Conejo: 'rabbit', Pez: 'fish', Otro: 'pet' };
+export function getGenericSpeciesImage(species, seed) {
+  const tag = SPECIES_TAG[species];
+  if (!tag) return null;
+  return `https://loremflickr.com/600/400/${tag}?lock=${seed ?? 1}`;
+}
+
 export async function searchDogBreeds(query) {
   if (!query) return [];
   try {

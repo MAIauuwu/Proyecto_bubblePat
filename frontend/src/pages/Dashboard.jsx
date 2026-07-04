@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import logo from '../assets/BubblePat.png';
-import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
+import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
 
 const statCard = 'bg-white/70 backdrop-blur-sm rounded-xl border border-pink-100 p-4 text-center shadow-sm';
 
@@ -30,15 +30,17 @@ export default function Dashboard() {
     const images = {};
     await Promise.all(petsList.map(async (pet) => {
       try {
-        if (pet.species === 'Perro' && pet.breed) {
-          images[pet.id] = await getDogImageByBreed(pet.breed);
-        } else if (pet.species === 'Perro') {
-          images[pet.id] = await getRandomDogImage();
-        } else if (pet.species === 'Gato' && pet.breed) {
-          images[pet.id] = await getCatImageByBreed(pet.breed);
+        let img = null;
+        if (pet.species === 'Perro') {
+          img = pet.breed ? await getDogImageByBreed(pet.breed) : null;
+          if (!img) img = await getRandomDogImage();
         } else if (pet.species === 'Gato') {
-          images[pet.id] = await getRandomCatImage();
+          img = pet.breed ? await getCatImageByBreed(pet.breed) : null;
+          if (!img) img = await getRandomCatImage();
+        } else {
+          img = getGenericSpeciesImage(pet.species, pet.id);
         }
+        images[pet.id] = img;
       } catch {}
     }));
     setPetImages(images);
