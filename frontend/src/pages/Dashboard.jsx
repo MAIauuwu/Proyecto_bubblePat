@@ -72,6 +72,7 @@ export default function Dashboard() {
           <img src={logo} alt="BubblePat" className="h-14" />
           <div className="flex items-center gap-4">
             <span className="text-rose-300">Hola, {user?.name}</span>
+            <Link to="/settings" className="text-rose-400 hover:text-rose-500 font-medium text-lg" title="Configuración / Apariencia">⚙️</Link>
             <button onClick={logout} className="text-rose-400 hover:text-rose-500 font-medium">
               Cerrar Sesión
             </button>

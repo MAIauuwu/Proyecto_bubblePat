@@ -668,6 +668,42 @@ public class PetService {
             out.add(new InsightDTO("tip", "💡", "Tip de cuidado", tip));
         }
 
+        // === Reglas adicionales ===
+        // Medicina pendiente hoy (alta prioridad)
+        long medPend = rutinas.stream().filter(r -> "medicine".equals(r.getType())
+                && aplicaHoy(r, today)
+                && !(r.isCompleted() && r.getCompletedAt() != null && r.getCompletedAt().toLocalDate().equals(today))).count();
+        if (medPend > 0) {
+            out.add(new InsightDTO("alert", "💊", "Medicina pendiente",
+                    "Recuerda dar la medicina de " + pet.getName() + " hoy."));
+        }
+        // Sin vacunas registradas
+        if (vacunas.isEmpty()) {
+            out.add(new InsightDTO("info", "💉", "Sin vacunas",
+                    "Aún no registras vacunas para " + pet.getName() + ". Considera su plan de vacunación."));
+        }
+        // Desparasitación (se recomienda cada ~3 meses)
+        if (pet.getLastDeworming() == null) {
+            out.add(new InsightDTO("info", "🐛", "Desparasitación",
+                    "Sin desparasitación registrada para " + pet.getName() + "."));
+        } else {
+            long meses = ChronoUnit.MONTHS.between(pet.getLastDeworming(), today);
+            if (meses >= 3) {
+                out.add(new InsightDTO("warning", "🐛", "Desparasitación",
+                        "Hace " + meses + " mese" + (meses == 1 ? "" : "s") + " desde la última desparasitación de " + pet.getName() + "."));
+            }
+        }
+        // Alergias conocidas
+        if (pet.getAllergicTo() != null && !pet.getAllergicTo().isBlank()) {
+            out.add(new InsightDTO("info", "⚠️", "Recuerda su alergia",
+                    pet.getName() + " es alérgico/a a " + pet.getAllergicTo() + "."));
+        }
+        // Racha rota: motivar a recomenzar
+        if ("broken".equals(streakStatus)) {
+            out.add(new InsightDTO("info", "🔄", "Racha interrumpida",
+                    "La racha se rompió. ¡Hoy es un buen día para volver a empezar!"));
+        }
+
         // Orden: alert > warning > praise > info > tip. Máximo 6 mensajes.
         Map<String, Integer> orden = new HashMap<>();
         orden.put("alert", 0);
