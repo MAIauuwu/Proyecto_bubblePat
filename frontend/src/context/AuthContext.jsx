@@ -19,8 +19,8 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+  // Persiste una respuesta de auth (login/register/update) en estado + localStorage
+  const persistAuth = (data) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('userName', data.name);
     localStorage.setItem('userEmail', data.email);
@@ -28,13 +28,14 @@ export function AuthProvider({ children }) {
     applyHue(data.themeHue != null ? data.themeHue : 350);
   };
 
+  const login = async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password });
+    persistAuth(data);
+  };
+
   const register = async (name, email, password) => {
     const { data } = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('userName', data.name);
-    localStorage.setItem('userEmail', data.email);
-    setUser({ token: data.token, name: data.name, email: data.email });
-    applyHue(data.themeHue != null ? data.themeHue : 350);
+    persistAuth(data);
   };
 
   const logout = () => {
@@ -45,7 +46,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, persistAuth }}>
       {children}
     </AuthContext.Provider>
   );
