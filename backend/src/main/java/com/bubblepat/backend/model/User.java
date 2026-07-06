@@ -23,6 +23,9 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    // Tema de color elegido por el usuario (hue HSL 0-360). null = por defecto.
+    private Integer themeHue;
+
     private LocalDate createdAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

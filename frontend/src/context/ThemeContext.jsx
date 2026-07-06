@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import api from '../api/client';
 
 const ThemeContext = createContext();
 
@@ -17,7 +18,7 @@ export const PRESETS = [
 // Genera una paleta pastel y la inyecta en las variables de color de Tailwind v4
 // (rose/pink/purple son los colores de marca; los semánticos como emerald/amber
 // no se tocan). Así toda la app se recolorea sin cambiar cada componente.
-function applyHue(hue) {
+function applyHueCss(hue) {
   const root = document.documentElement;
   const c = (s, l) => `hsl(${hue}, ${s}%, ${l}%)`;
   root.style.setProperty('--color-rose-500', c(72, 50));
@@ -37,21 +38,28 @@ export function ThemeProvider({ children }) {
   });
 
   useEffect(() => {
-    applyHue(hue);
+    applyHueCss(hue);
   }, [hue]);
 
-  const setHue = (newHue) => {
+  // Aplica y guarda solo en el navegador (usado al sincronizar desde el login).
+  const applyHue = (newHue) => {
     setHueState(newHue);
     localStorage.setItem('bp_hue', String(newHue));
   };
 
+  // Aplica + guarda en el navegador Y en el backend (si hay sesión iniciada).
+  const setHue = (newHue) => {
+    applyHue(newHue);
+    if (localStorage.getItem('token')) {
+      api.put('/users/me/theme', { hue: newHue }).catch(() => {});
+    }
+  };
+
   return (
-    <ThemeContext.Provider value={{ hue, setHue, presets: PRESETS }}>
+    <ThemeContext.Provider value={{ hue, setHue, applyHue, presets: PRESETS }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
-export function useTheme() {
-  return useContext(ThemeContext);
-}
+export const useTheme = () => useContext(ThemeContext);

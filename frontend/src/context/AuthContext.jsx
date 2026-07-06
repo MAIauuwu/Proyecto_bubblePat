@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api/client';
+import { useTheme } from './ThemeContext';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { applyHue } = useTheme();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -23,6 +25,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userName', data.name);
     localStorage.setItem('userEmail', data.email);
     setUser({ token: data.token, name: data.name, email: data.email });
+    applyHue(data.themeHue != null ? data.themeHue : 350);
   };
 
   const register = async (name, email, password) => {
@@ -31,6 +34,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userName', data.name);
     localStorage.setItem('userEmail', data.email);
     setUser({ token: data.token, name: data.name, email: data.email });
+    applyHue(data.themeHue != null ? data.themeHue : 350);
   };
 
   const logout = () => {
