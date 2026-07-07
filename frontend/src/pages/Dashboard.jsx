@@ -189,7 +189,7 @@ export default function Dashboard() {
 
                     {pet.insights?.[0] && (
                       <div className="text-[11px] mb-3 px-2.5 py-1.5 rounded-lg bg-pink-50 border border-pink-100 text-rose-500 leading-snug">
-                        <span className="mr-1">{pet.insights[0].icon}</span>{pet.insights[0].message}
+                        {pet.insights[0].message}
                       </div>
                     )}
 
