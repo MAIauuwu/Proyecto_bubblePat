@@ -166,7 +166,7 @@ export default function PetForm() {
 
           <div>
             <label className="block text-sm font-medium text-rose-400 mb-1">Fecha de nacimiento</label>
-            <input type="date" name="birthDate" value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
+            <input type="date" name="birthDate" max={new Date().toISOString().split('T')[0]} value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
               className="w-full px-4 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-rose-300 outline-none bg-pink-50/50" />
           </div>
 
