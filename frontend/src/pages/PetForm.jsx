@@ -137,7 +137,6 @@ export default function PetForm() {
               <option value="Gato">Gato</option>
               <option value="Ave">Ave</option>
               <option value="Conejo">Conejo</option>
-              <option value="Pez">Pez</option>
             </select>
           </div>
 
