@@ -475,7 +475,9 @@ export default function PetDetail() {
 
         {/* ===== Tabs ===== */}
         <div className="flex gap-2 flex-wrap">
-          {['routines', 'vaccinations', 'reminders', 'activity'].map((tab) => (
+          {['routines', 'vaccinations', 'reminders', 'activity']
+            .filter((tab) => tab !== 'vaccinations' || !['Ave', 'Conejo'].includes(pet.species))
+            .map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
                 activeTab === tab ? 'bg-rose-300 text-white shadow-sm' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
