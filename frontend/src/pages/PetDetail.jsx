@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/client';
 import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
 import logo from '../assets/BubblePat.png';
+import SpeciesCare from '../components/SpeciesCare';
 
 const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-rose-300' };
 const statusWidth = { ok: '100%', warning: '55%', bad: '12%' };
@@ -421,6 +422,8 @@ export default function PetDetail() {
             </div>
           </div>
         )}
+
+        <SpeciesCare species={pet.species} />
 
         {/* ===== Estado general (bienestar) ===== */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
