@@ -69,26 +69,26 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
       <nav className="bg-white/60 backdrop-blur-sm border-b border-pink-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <img src={logo} alt="BubblePat" className="h-14" />
-          <div className="flex items-center gap-4">
-            <span className="text-rose-300">Hola, {user?.name}</span>
-            <Link to="/settings" className="text-rose-400 hover:text-rose-500 font-medium text-sm" title="Configuración / Apariencia">Configuración</Link>
-            <button onClick={logout} className="text-rose-400 hover:text-rose-500 font-medium">
+          <img src={logo} alt="BubblePat" className="h-10 sm:h-14" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-rose-300 text-sm hidden sm:inline">Hola, {user?.name}</span>
+            <Link to="/settings" className="text-rose-400 hover:text-rose-500 font-medium text-xs sm:text-sm" title="Configuración / Apariencia">Configuración</Link>
+            <button onClick={logout} className="text-rose-400 hover:text-rose-500 font-medium text-xs sm:text-sm">
               Cerrar Sesión
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-rose-500">Panel principal</h2>
-            <p className="text-rose-300 text-sm">Resumen del cuidado de tus mascotas</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-rose-500">Panel principal</h2>
+            <p className="text-rose-300 text-xs sm:text-sm">Resumen del cuidado de tus mascotas</p>
           </div>
           <Link to="/pets/new"
-            className="bg-rose-300 text-white px-6 py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm">
-            + Agregar Mascota
+            className="bg-rose-300 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm text-sm">
+            + Mascota
           </Link>
         </div>
 

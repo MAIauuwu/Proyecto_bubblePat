@@ -379,23 +379,23 @@ export default function PetDetail() {
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* ===== Header + racha ===== */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
-          <div className="flex justify-between items-start">
-            <div className="flex gap-4">
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div className="flex gap-3 sm:gap-4">
               {breedImage ? (
-                <img src={breedImage} alt={pet.breed} className="w-24 h-24 rounded-xl object-cover border border-pink-100" />
+                <img src={breedImage} alt={pet.breed} className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl object-cover border border-pink-100 shrink-0" />
               ) : (
-                <div className={`w-24 h-24 rounded-xl bg-gradient-to-br ${SPECIES_GRADIENT[pet.species] || SPECIES_GRADIENT.Otro} flex items-center justify-center border border-pink-100`}>
-                  <span className="text-4xl">{SPECIES_EMOJI[pet.species] || SPECIES_EMOJI.Otro}</span>
+                <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br ${SPECIES_GRADIENT[pet.species] || SPECIES_GRADIENT.Otro} flex items-center justify-center border border-pink-100 shrink-0`}>
+                  <span className="text-3xl sm:text-4xl">{SPECIES_EMOJI[pet.species] || SPECIES_EMOJI.Otro}</span>
                 </div>
               )}
               <div>
-                <h1 className="text-3xl font-bold text-rose-500">{pet.name}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-rose-500">{pet.name}</h1>
                 <p className="text-rose-300 mt-1">{pet.species} {pet.breed && `· ${pet.breed}`}</p>
                 {pet.birthDate && <p className="text-rose-200 text-sm mt-1">Nacimiento: {pet.birthDate}</p>}
               </div>
             </div>
-            <div className="text-center flex flex-col items-center gap-2 min-w-[180px]">
+            <div className="flex flex-row sm:flex-col items-center gap-3 sm:gap-2 w-full sm:w-auto sm:min-w-[180px] justify-start sm:justify-center">
               <div className="bg-amber-50 text-amber-500 px-4 py-2 rounded-full">
                 <span className="text-2xl font-bold">🔥 {pet.dailyStreak}</span>
                 <p className="text-xs">días de racha</p>
@@ -436,7 +436,7 @@ export default function PetDetail() {
             </div>
           )}
 
-          <div className="mt-4 pt-4 border-t border-pink-100 grid grid-cols-3 gap-4 text-sm">
+          <div className="mt-4 pt-4 border-t border-pink-100 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
             {pet.weight && <div><span className="text-rose-200">Peso:</span> <span className="font-medium text-rose-400">{pet.weight} kg</span></div>}
             {pet.allergicTo && <div><span className="text-rose-200">Alérgico a:</span> <span className="font-medium text-rose-400">{pet.allergicTo}</span></div>}
             {pet.lastDeworming && <div><span className="text-rose-200">Desparasitación:</span> <span className="font-medium text-rose-400">{pet.lastDeworming}</span></div>}
@@ -524,7 +524,7 @@ export default function PetDetail() {
             <h2 className="text-lg font-bold text-rose-500">Logros</h2>
             <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
             {badges.map((b) => (
               <div key={b.key} title={b.description}
                 className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
@@ -562,7 +562,7 @@ export default function PetDetail() {
             </button>
             {showForm.routine && (
             <form onSubmit={(e) => { addRoutine(e); setShowForm({ ...showForm, routine: false }); }} className={cardClass}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-rose-300 mb-1">Tipo *</label>
                   <select value={routineForm.type} onChange={(e) => setRoutineForm({...routineForm, type: e.target.value})}
@@ -681,7 +681,7 @@ export default function PetDetail() {
             </button>
             {showForm.vaccine && (
             <form onSubmit={(e) => { addVaccination(e); setShowForm({ ...showForm, vaccine: false }); }} className={cardClass}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input placeholder="Nombre de vacuna *" value={vaccineForm.name}
                   onChange={(e) => setVaccineForm({...vaccineForm, name: e.target.value})} required
                   className={inputClass} />
@@ -760,7 +760,7 @@ export default function PetDetail() {
             </button>
             {showForm.reminder && (
             <form onSubmit={(e) => { addReminder(e); setShowForm({ ...showForm, reminder: false }); }} className={cardClass}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block text-xs text-rose-300 mb-1">Título *</label>
                   <input value={reminderForm.title}
