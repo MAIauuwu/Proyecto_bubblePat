@@ -174,7 +174,7 @@ export default function Dashboard() {
                       {rutinasHoy.length > 0 && (
                         <span className={`px-2 py-1 rounded-full font-medium ${
                           hechasHoy === rutinasHoy.length ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}>
-                          ✓ {hechasHoy}/{rutinasHoy.length} rutinas hoy
+                          {hechasHoy}/{rutinasHoy.length} rutinas hoy
                         </span>
                       )}
                       {pendientes.length > 0 && (
@@ -204,7 +204,7 @@ export default function Dashboard() {
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-emerald-200 text-emerald-700 hover:bg-emerald-300'
                         }`}>
-                        {pet.routineDoneToday ? '✓ Hecho hoy' : 'Completar Rutina'}
+                        {pet.routineDoneToday ? 'Hecho hoy' : 'Completar Rutina'}
                       </button>
                       <Link to={`/pets/${pet.id}`}
                         className="flex-1 bg-rose-100 text-rose-500 py-2 rounded-lg hover:bg-rose-200 transition text-sm font-medium text-center">
