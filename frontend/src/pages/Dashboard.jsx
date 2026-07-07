@@ -72,7 +72,7 @@ export default function Dashboard() {
           <img src={logo} alt="BubblePat" className="h-14" />
           <div className="flex items-center gap-4">
             <span className="text-rose-300">Hola, {user?.name}</span>
-            <Link to="/settings" className="text-rose-400 hover:text-rose-500 font-medium text-lg" title="Configuración / Apariencia">⚙️</Link>
+            <Link to="/settings" className="text-rose-400 hover:text-rose-500 font-medium text-sm" title="Configuración / Apariencia">Configuración</Link>
             <button onClick={logout} className="text-rose-400 hover:text-rose-500 font-medium">
               Cerrar Sesión
             </button>
@@ -104,7 +104,7 @@ export default function Dashboard() {
               <p className="text-xs text-rose-300">Bienestar promedio</p>
             </div>
             <div className={statCard}>
-              <p className="text-2xl font-bold text-amber-500">🔥 {activeStreaks}</p>
+              <p className="text-2xl font-bold text-amber-500">{activeStreaks}</p>
               <p className="text-xs text-rose-300">Rachas activas</p>
             </div>
             <div className={statCard}>
@@ -150,7 +150,7 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <div className="bg-amber-50 text-amber-500 px-3 py-1 rounded-full text-sm font-bold inline-block">
-                          🔥 {pet.dailyStreak}
+                          {pet.dailyStreak}
                         </div>
                         {pet.bestStreak > 0 && (
                           <p className="text-[11px] text-rose-300 mt-1">Récord {pet.bestStreak}</p>
@@ -179,11 +179,11 @@ export default function Dashboard() {
                       )}
                       {pendientes.length > 0 && (
                         <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-600 font-medium">
-                          🔔 {pendientes.length} recordatorio{pendientes.length === 1 ? '' : 's'}
+                          {pendientes.length} recordatorio{pendientes.length === 1 ? '' : 's'}
                         </span>
                       )}
                       <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-500 font-medium">
-                        🏅 {earnedBadges}/{pet.badges?.length || 0} logros
+                        {earnedBadges}/{pet.badges?.length || 0} logros
                       </span>
                     </div>
 
