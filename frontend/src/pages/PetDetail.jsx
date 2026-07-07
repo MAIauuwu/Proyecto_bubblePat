@@ -60,6 +60,10 @@ export default function PetDetail() {
   const [editingVaccine, setEditingVaccine] = useState(null);
   const [reminderForm, setReminderForm] = useState({ title: '', description: '', reminderDate: '', time: '' });
   const [editingReminder, setEditingReminder] = useState(null);
+  const [quickModal, setQuickModal] = useState(null);
+  const [quickData, setQuickData] = useState({ weight: '', deworming: '', vaccine: { name: '', appliedDate: '', nextDoseDate: '' } });
+  const [routineView, setRoutineView] = useState('today');
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     loadPet();
@@ -93,6 +97,26 @@ export default function PetDetail() {
       await api.delete(`/pets/${id}`);
       navigate('/');
     }
+  };
+
+  const petToRequest = () => ({
+    name: pet.name, species: pet.species, breed: pet.breed || null,
+    birthDate: pet.birthDate || null, weight: pet.weight || null,
+    allergicTo: pet.allergicTo || null, lastDeworming: pet.lastDeworming || null,
+  });
+
+  const saveQuick = async (e) => {
+    e.preventDefault();
+    if (quickModal === 'weight') {
+      await api.put(`/pets/${id}`, { ...petToRequest(), weight: parseFloat(quickData.weight) });
+    } else if (quickModal === 'deworming') {
+      await api.put(`/pets/${id}`, { ...petToRequest(), lastDeworming: quickData.deworming });
+    } else if (quickModal === 'vaccine') {
+      await api.post(`/pets/${id}/vaccinations`, quickData.vaccine);
+    }
+    setQuickModal(null);
+    setQuickData({ weight: '', deworming: '', vaccine: { name: '', appliedDate: '', nextDoseDate: '' } });
+    loadPet();
   };
 
   const addRoutine = async (e) => {
@@ -323,13 +347,26 @@ export default function PetDetail() {
               <img src={logo} alt="BubblePat" className="h-14" />
             </Link>
           </div>
-          <div className="flex gap-4">
-            <Link to={`/pets/${id}/edit`} className="text-rose-300 hover:text-rose-400 font-medium text-sm">
-              Editar Mascota
-            </Link>
-            <button onClick={handleDelete} className="text-rose-400 hover:text-rose-500 font-medium text-sm">
-              Eliminar Mascota
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)}
+              className="p-2 rounded-lg hover:bg-rose-50 text-rose-400 font-bold text-lg" title="Opciones">
+              ⋮
             </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-lg shadow-lg border border-pink-100 py-1 w-44">
+                  <Link to={`/pets/${id}/edit`} onClick={() => setShowMenu(false)}
+                    className="block px-4 py-2 text-sm text-rose-400 hover:bg-rose-50">
+                    Editar mascota
+                  </Link>
+                  <button onClick={() => { setShowMenu(false); handleDelete(); }}
+                    className="block w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50">
+                    Eliminar mascota
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -398,6 +435,26 @@ export default function PetDetail() {
             {pet.allergicTo && <div><span className="text-rose-200">Alérgico a:</span> <span className="font-medium text-rose-400">{pet.allergicTo}</span></div>}
             {pet.lastDeworming && <div><span className="text-rose-200">Desparasitación:</span> <span className="font-medium text-rose-400">{pet.lastDeworming}</span></div>}
           </div>
+        </div>
+
+        {/* ===== Acciones rápidas ===== */}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setQuickModal('weight')}
+            className="px-3 py-1.5 rounded-lg bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition">
+            Registrar peso
+          </button>
+          {!['Ave', 'Conejo'].includes(pet.species) && (
+            <>
+              <button onClick={() => setQuickModal('vaccine')}
+                className="px-3 py-1.5 rounded-lg bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition">
+                Vacuna
+              </button>
+              <button onClick={() => setQuickModal('deworming')}
+                className="px-3 py-1.5 rounded-lg bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition">
+                Desparasitación
+              </button>
+            </>
+          )}
         </div>
 
         {/* ===== Asistente BubblePat (mensajes inteligentes) ===== */}
@@ -547,11 +604,26 @@ export default function PetDetail() {
 
             {(!pet.routines || pet.routines.length === 0) && (
               <div className={`${cardClass} text-center text-rose-300 text-sm`}>
-                No hay rutinas. Agrega las actividades diarias (alimentación, paseo, agua, medicina…) para alimentar la racha 🔥
+                No hay rutinas. Agrega las actividades diarias (alimentación, paseo, agua, medicina…) para alimentar la racha.
               </div>
             )}
 
-            {pet.routines?.map((r) => {
+            {pet.routines && pet.routines.length > 0 && (
+              <div className="flex gap-2">
+                {[['today', 'Hoy'], ['weekly', 'Semanal'], ['pending', 'Pendientes']].map(([v, label]) => (
+                  <button key={v} onClick={() => setRoutineView(v)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                      routineView === v ? 'bg-rose-300 text-white' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
+                    }`}>{label}</button>
+                ))}
+              </div>
+            )}
+
+            {pet.routines?.filter((r) => {
+              if (routineView === 'today') return r.appliesToday;
+              if (routineView === 'pending') return r.appliesToday && !r.doneToday;
+              return true;
+            }).map((r) => {
               const schedule = formatSchedule(r);
               return (
                 <div key={r.id} className={`${cardClass} ${r.doneToday ? 'opacity-60' : ''}`}>
@@ -784,6 +856,46 @@ export default function PetDetail() {
           );
         })()}
       </div>
+
+      {/* ===== Modal de acciones rápidas ===== */}
+      {quickModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setQuickModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-rose-500 mb-4">
+              {quickModal === 'weight' ? 'Registrar peso' : quickModal === 'vaccine' ? 'Nueva vacuna' : 'Desparasitación'}
+            </h3>
+            <form onSubmit={saveQuick} className="space-y-3">
+              {quickModal === 'weight' && (
+                <input type="number" step="0.1" placeholder="Peso en kg" value={quickData.weight}
+                  onChange={(e) => setQuickData({ ...quickData, weight: e.target.value })} required
+                  className={inputClass + ' w-full'} />
+              )}
+              {quickModal === 'deworming' && (
+                <input type="date" value={quickData.deworming}
+                  onChange={(e) => setQuickData({ ...quickData, deworming: e.target.value })} required
+                  className={inputClass + ' w-full'} />
+              )}
+              {quickModal === 'vaccine' && (
+                <>
+                  <input placeholder="Nombre de vacuna *" value={quickData.vaccine.name}
+                    onChange={(e) => setQuickData({ ...quickData, vaccine: { ...quickData.vaccine, name: e.target.value } })} required
+                    className={inputClass + ' w-full'} />
+                  <input type="date" value={quickData.vaccine.appliedDate}
+                    onChange={(e) => setQuickData({ ...quickData, vaccine: { ...quickData.vaccine, appliedDate: e.target.value } })}
+                    className={inputClass + ' w-full'} />
+                  <input type="date" value={quickData.vaccine.nextDoseDate}
+                    onChange={(e) => setQuickData({ ...quickData, vaccine: { ...quickData.vaccine, nextDoseDate: e.target.value } })}
+                    className={inputClass + ' w-full'} />
+                </>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className={btnPrimary + ' flex-1'}>Guardar</button>
+                <button type="button" onClick={() => setQuickModal(null)} className={btnSecondary}>Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

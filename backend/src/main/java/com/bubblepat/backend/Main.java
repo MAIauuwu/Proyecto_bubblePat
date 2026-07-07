@@ -10,10 +10,6 @@ import java.util.stream.Stream;
 @SpringBootApplication
 public class Main {
 
-    // Carga un archivo .env (en el directorio de trabajo) y expone sus variables
-    // como propiedades del sistema, de modo que los placeholders ${VAR} de
-    // application.properties se resuelvan. Así evitamos commitear credenciales
-    // reales al repositorio. Las variables de entorno reales tienen prioridad.
     static {
         File envFile = new File(".env");
         if (envFile.exists()) {

@@ -1,0 +1,660 @@
+{
+  "info": {
+    "name": "BubblePat — Plan de Pruebas (PT-01..PT-18)",
+    "_postman_id": "b1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "description": "Colección oficial del Plan de Pruebas del proyecto BubblePat (TPY1101). Cubre autenticación, mascotas, rutinas/rachas, vacunas, recordatorios, APIs externas y seguridad.\n\nBase local: http://localhost:8081/api  (backend host)\nUsuarios semilla: ana@bubblepat.test / Test1234  y  benja@bubblepat.test / Test1234\n\nEjecutable con Newman:  newman run \"BubblePat.postman_collection.json\" --reporters cli,htmlextra",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081/api" },
+    { "key": "seedEmail", "value": "ana@bubblepat.test" },
+    { "key": "seedPass", "value": "Test1234" },
+    { "key": "otherEmail", "value": "benja@bubblepat.test" },
+    { "key": "otherPass", "value": "Test1234" },
+    { "key": "authToken", "value": "" },
+    { "key": "otherAuthToken", "value": "" },
+    { "key": "newEmail", "value": "" },
+    { "key": "petId", "value": "" },
+    { "key": "otherPetId", "value": "" },
+    { "key": "streakPetId", "value": "" },
+    { "key": "streakR1", "value": "" },
+    { "key": "streakR2", "value": "" },
+    { "key": "streakPet10", "value": "" },
+    { "key": "vaccinationId", "value": "" },
+    { "key": "reminderVencidoId", "value": "" },
+    { "key": "todayIso", "value": "" },
+    { "key": "yesterdayIso", "value": "" },
+    { "key": "plus2Iso", "value": "" },
+    { "key": "nextYearIso", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticación (PT-01..PT-04)",
+      "item": [
+        {
+          "name": "PT-01 Registro de usuario válido (200 + JWT)",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('newEmail', 'pt01_' + Date.now() + '@bubblepat.test');"] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-01 status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-01 devuelve token JWT', () => pm.expect(j.token).to.be.a('string').and.not.empty);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth","register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Usuario PT01\",\n  \"email\": \"{{newEmail}}\",\n  \"password\": \"Test1234\"\n}" }
+          }
+        },
+        {
+          "name": "PT-02 Registro email duplicado (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-02 status 400', () => pm.response.to.have.status(400));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "let txt = JSON.stringify(j);",
+              "pm.test('PT-02 mensaje email registrado', () => pm.expect(txt.toLowerCase()).to.include('registrado'));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth","register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ana\",\n  \"email\": \"{{seedEmail}}\",\n  \"password\": \"Test1234\"\n}" }
+          }
+        },
+        {
+          "name": "PT-03 Login válido (200 + JWT) → guarda token Ana",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-03 status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-03 devuelve token', () => pm.expect(j.token).to.be.a('string').and.not.empty);",
+              "pm.collectionVariables.set('authToken', j.token);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{seedEmail}}\",\n  \"password\": \"{{seedPass}}\"\n}" }
+          }
+        },
+        {
+          "name": "PT-04 Login credenciales inválidas (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-04 status 400', () => pm.response.to.have.status(400));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-04 mensaje credenciales inválidas', () => pm.expect(JSON.stringify(j).toLowerCase()).to.include('inválidas'));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{seedEmail}}\",\n  \"password\": \"PasswordIncorrecta123\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Mascotas (PT-05..PT-08)",
+      "item": [
+        {
+          "name": "Setup: Login Benja → guarda token",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Setup Benja login 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('otherAuthToken', j.token);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{otherEmail}}\",\n  \"password\": \"{{otherPass}}\"\n}" }
+          }
+        },
+        {
+          "name": "Setup: Mascotas de Benja → guarda otherPetId",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Setup lista Benja 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = []; }",
+              "pm.test('Setup Benja tiene mascota', () => pm.expect(j.length).to.be.above(0));",
+              "pm.collectionVariables.set('otherPetId', j[0].id);"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{otherAuthToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] }
+          }
+        },
+        {
+          "name": "PT-05 Crear mascota válida (200) → guarda petId",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-05 status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-05 mascota creada con id', () => pm.expect(j.id).to.be.a('number'));",
+              "pm.collectionVariables.set('petId', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Luna Test\",\n  \"species\": \"Perro\",\n  \"breed\": \"Labrador\",\n  \"weight\": 12.5\n}" }
+          }
+        },
+        {
+          "name": "PT-06 Validación: crear mascota sin nombre (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-06 status 400', () => pm.response.to.have.status(400));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-06 errores por campo', () => pm.expect(JSON.stringify(j).toLowerCase()).to.include('nombre'));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"\",\n  \"species\": \"\"\n}" }
+          }
+        },
+        {
+          "name": "PT-07 Autorización: Ana accede a mascota de Benja (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-07 status 400', () => pm.response.to.have.status(400));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-07 sin permiso', () => pm.expect(JSON.stringify(j).toLowerCase()).to.include('permiso'));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{otherPetId}}", "host": ["{{baseUrl}}"], "path": ["pets","{{otherPetId}}"] }
+          }
+        },
+        {
+          "name": "PT-08 Seguridad: acceso sin token (401/403)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "let code = pm.response.code;",
+              "pm.test('PT-08 bloqueado sin token (401/403)', () => pm.expect([401,403]).to.include(code));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Rutinas y Rachas (PT-09..PT-11)",
+      "item": [
+        {
+          "name": "PT-09a Setup: crear mascota para rachas → streakPetId",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-09a crear mascota 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('streakPetId', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Streak Pet\",\n  \"species\": \"Perro\",\n  \"breed\": \"Beagle\"\n}" }
+          }
+        },
+        {
+          "name": "PT-09b Crear rutina 1 (Alimentación) → streakR1",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-09b rutina1 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('streakR1', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPetId}}/routines", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPetId}}","routines"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"Alimentacion\",\n  \"description\": \"Comer 2 veces\"\n}" }
+          }
+        },
+        {
+          "name": "PT-09c Crear rutina 2 (Paseo) → streakR2",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-09c rutina2 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('streakR2', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPetId}}/routines", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPetId}}","routines"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"Paseo\",\n  \"description\": \"30 min\"\n}" }
+          }
+        },
+        {
+          "name": "PT-09d Completar rutina 1",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-09d completar rutina1 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/routines/{{streakR1}}/complete", "host": ["{{baseUrl}}"], "path": ["pets","routines","{{streakR1}}","complete"] }
+          }
+        },
+        {
+          "name": "PT-09e Completar rutina 2",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-09e completar rutina2 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/routines/{{streakR2}}/complete", "host": ["{{baseUrl}}"], "path": ["pets","routines","{{streakR2}}","complete"] }
+          }
+        },
+        {
+          "name": "PT-09f Verificar: racha avanzó a 1 y routineDoneToday=true",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-09f status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-09f racha = 1', () => pm.expect(j.dailyStreak).to.eql(1));",
+              "pm.test('PT-09f routineDoneToday = true', () => pm.expect(j.routineDoneToday).to.eql(true));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPetId}}", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPetId}}"] }
+          }
+        },
+        {
+          "name": "PT-10a Setup: mascota para doble marca → streakPet10",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-10a setup 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('streakPet10', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Streak10\",\n  \"species\": \"Gato\",\n  \"breed\": \"Siames\"\n}" }
+          }
+        },
+        {
+          "name": "PT-10b Marcar rutina del día (1ª vez) → 200",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-10b status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-10b racha avanzó (>=1)', () => pm.expect(j.dailyStreak).to.be.at.least(1));"
+            ] } }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPet10}}/streak", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPet10}}","streak"] }
+          }
+        },
+        {
+          "name": "PT-10c Marcar rutina del día (2ª vez) → 400",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-10c status 400', () => pm.response.to.have.status(400));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-10c ya completó hoy', () => pm.expect(JSON.stringify(j).toLowerCase()).to.include('hoy'));"
+            ] } }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPet10}}/streak", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPet10}}","streak"] }
+          }
+        },
+        {
+          "name": "PT-11 Reversión: agregar rutina pendiente tras completar → racha vuelve a 0",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-11 agregar rutina 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPetId}}/routines", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPetId}}","routines"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"Extra\",\n  \"description\": \"Rutina nueva pendiente\"\n}" }
+          }
+        },
+        {
+          "name": "PT-11b Verificar: racha revertida a 0",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-11b status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-11b racha revertida = 0', () => pm.expect(j.dailyStreak).to.eql(0));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{streakPetId}}", "host": ["{{baseUrl}}"], "path": ["pets","{{streakPetId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Vacunas (PT-12)",
+      "item": [
+        {
+          "name": "PT-12a Crear vacuna (200) → vaccinationId",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "let now = new Date();",
+              "let ny = new Date(now.getTime() + 365*86400000);",
+              "pm.collectionVariables.set('todayIso', now.toISOString().substring(0,10));",
+              "pm.collectionVariables.set('nextYearIso', ny.toISOString().substring(0,10));"
+            ] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-12a crear 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('vaccinationId', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{petId}}/vaccinations", "host": ["{{baseUrl}}"], "path": ["pets","{{petId}}","vaccinations"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rabia\",\n  \"appliedDate\": \"{{todayIso}}\",\n  \"nextDoseDate\": \"{{nextYearIso}}\",\n  \"vetName\": \"Dr. House\",\n  \"notes\": \"1ra dosis\"\n}" }
+          }
+        },
+        {
+          "name": "PT-12b Listar vacunas (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-12b listar 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = []; }",
+              "pm.test('PT-12b hay >=1 vacuna', () => pm.expect(j.length).to.be.at.least(1));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{petId}}/vaccinations", "host": ["{{baseUrl}}"], "path": ["pets","{{petId}}","vaccinations"] }
+          }
+        },
+        {
+          "name": "PT-12c Editar vacuna (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-12c editar 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-12c nombre actualizado', () => pm.expect(j.name).to.eql('Rabia Anual'));"
+            ] } }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/vaccinations/{{vaccinationId}}", "host": ["{{baseUrl}}"], "path": ["pets","vaccinations","{{vaccinationId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rabia Anual\",\n  \"appliedDate\": \"{{todayIso}}\",\n  \"nextDoseDate\": \"{{nextYearIso}}\",\n  \"vetName\": \"Dr. House\",\n  \"notes\": \"Refuerzo\"\n}" }
+          }
+        },
+        {
+          "name": "PT-12d Eliminar vacuna (204)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-12d eliminar 204', () => pm.response.to.have.status(204));"
+            ] } }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/vaccinations/{{vaccinationId}}", "host": ["{{baseUrl}}"], "path": ["pets","vaccinations","{{vaccinationId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Recordatorios (PT-13..PT-14)",
+      "item": [
+        {
+          "name": "PT-13a Crear recordatorio VENCIDO (200) → reminderVencidoId",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "let now = new Date();",
+              "pm.collectionVariables.set('yesterdayIso', new Date(now.getTime()-86400000).toISOString().substring(0,10) + 'T10:00:00');",
+              "pm.collectionVariables.set('todayIso', now.toISOString().substring(0,10) + 'T10:00:00');",
+              "pm.collectionVariables.set('plus2Iso', new Date(now.getTime()+2*86400000).toISOString().substring(0,10) + 'T10:00:00');"
+            ] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-13a crear vencido 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.collectionVariables.set('reminderVencidoId', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{petId}}/reminders", "host": ["{{baseUrl}}"], "path": ["pets","{{petId}}","reminders"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Vacuna vencida\",\n  \"description\": \"Se paso de fecha\",\n  \"reminderDate\": \"{{yesterdayIso}}\"\n}" }
+          }
+        },
+        {
+          "name": "PT-13b Crear recordatorio HOY (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-13b crear hoy 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{petId}}/reminders", "host": ["{{baseUrl}}"], "path": ["pets","{{petId}}","reminders"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Baño hoy\",\n  \"description\": \"Hoy toca\",\n  \"reminderDate\": \"{{todayIso}}\"\n}" }
+          }
+        },
+        {
+          "name": "PT-13c Crear recordatorio PRÓXIMO (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-13c crear proximo 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/pets/{{petId}}/reminders", "host": ["{{baseUrl}}"], "path": ["pets","{{petId}}","reminders"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Control vet\",\n  \"description\": \"En 2 dias\",\n  \"reminderDate\": \"{{plus2Iso}}\"\n}" }
+          }
+        },
+        {
+          "name": "PT-13d Verificar estados calculados (vencido/hoy/proximo)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-13d status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "let estados = (j.reminders || []).map(r => r.status);",
+              "pm.test('PT-13d existe vencido', () => pm.expect(estados).to.include('vencido'));",
+              "pm.test('PT-13d existe hoy', () => pm.expect(estados).to.include('hoy'));",
+              "pm.test('PT-13d existe proximo', () => pm.expect(estados).to.include('proximo'));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/{{petId}}", "host": ["{{baseUrl}}"], "path": ["pets","{{petId}}"] }
+          }
+        },
+        {
+          "name": "PT-14 Completar recordatorio (200, completed=true)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-14 status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-14 completed = true', () => pm.expect(j.completed).to.eql(true));"
+            ] } }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets/reminders/{{reminderVencidoId}}/complete", "host": ["{{baseUrl}}"], "path": ["pets","reminders","{{reminderVencidoId}}","complete"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. APIs externas (PT-15..PT-16)",
+      "item": [
+        {
+          "name": "PT-15a Buscar raza de perro (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-15a status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = []; }",
+              "pm.test('PT-15a devuelve lista', () => pm.expect(j).to.be.an('array'));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/breeds/dogs?q=beagle", "host": ["{{baseUrl}}"], "path": ["breeds","dogs"], "query": [{ "key": "q", "value": "beagle" }] }
+          }
+        },
+        {
+          "name": "PT-15b Imagen de perro por raza (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-15b status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-15b devuelve imageUrl', () => pm.expect(j.imageUrl).to.be.a('string').and.not.empty);"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/dogs/image?breed=beagle", "host": ["{{baseUrl}}"], "path": ["dogs","image"], "query": [{ "key": "breed", "value": "beagle" }] }
+          }
+        },
+        {
+          "name": "PT-16a Buscar razas de gato (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-16a status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = []; }",
+              "pm.test('PT-16a devuelve lista', () => pm.expect(j).to.be.an('array'));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/breeds/cats?q=", "host": ["{{baseUrl}}"], "path": ["breeds","cats"], "query": [{ "key": "q", "value": "" }] }
+          }
+        },
+        {
+          "name": "PT-16b Imagen aleatoria de gato (200)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-16b status 200', () => pm.response.to.have.status(200));",
+              "let j; try { j = pm.response.json(); } catch(e) { j = {}; }",
+              "pm.test('PT-16b devuelve url', () => pm.expect(j.url).to.be.a('string').and.not.empty);"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/cats/random", "host": ["{{baseUrl}}"], "path": ["cats","random"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. UI / Seguridad extra (PT-17..PT-18)",
+      "item": [
+        {
+          "name": "PT-17 Flujo UI completo ( MANUAL en navegador http://localhost:3000 )",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('PT-17 (UI) respaldo API del dashboard 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] }
+          }
+        },
+        {
+          "name": "PT-18 Sesión inválida: token corrupto (401/403)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "let code = pm.response.code;",
+              "pm.test('PT-18 token inválido rechazado (401/403)', () => pm.expect([401,403]).to.include(code));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer token.invalido.falso" }],
+            "url": { "raw": "{{baseUrl}}/pets", "host": ["{{baseUrl}}"], "path": ["pets"] }
+          }
+        }
+      ]
+    }
+  ]
+}

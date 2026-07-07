@@ -483,7 +483,7 @@ public class PetService {
         r.setReminders(recordatorios.stream().map(this::toReminderResponse).collect(Collectors.toList()));
 
         // Indicador de bienestar y medallas (gamificación)
-        r.setWellness(calcularWellness(rutinas, vacunas, streakStatus));
+        r.setWellness(calcularWellness(pet, rutinas, vacunas, streakStatus));
         r.setBadges(calcularMedallas(pet, rutinas, vacunas, r.getWellness().getScore(),
                 doneToday, todasRutinasHechasHoy(rutinas, today)));
         // Asistente BubblePat: mensajes inteligentes
@@ -502,7 +502,7 @@ public class PetService {
     }
 
     // === Bienestar: score 0-100 calculado desde actividades registradas ===
-    private WellnessDTO calcularWellness(List<Routine> rutinas, List<Vaccination> vacunas, String streakStatus) {
+    private WellnessDTO calcularWellness(Pet pet, List<Routine> rutinas, List<Vaccination> vacunas, String streakStatus) {
         LocalDate today = LocalDate.now();
         List<WellnessItem> items = new ArrayList<>();
 
@@ -545,16 +545,27 @@ public class PetService {
         else { felicidadStatus = "warning"; felicidadDetail = "Aún sin racha"; }
         items.add(new WellnessItem("happiness", "Felicidad", "😊", felicidadStatus, felicidadDetail));
 
-        // Score = promedio ponderado (ok=1, warning=0.5, bad=0)
+        // Score base = promedio ponderado (ok=1, warning=0.5, bad=0)
         double suma = 0;
         for (WellnessItem it : items) {
             suma += "ok".equals(it.getStatus()) ? 1.0 : ("warning".equals(it.getStatus()) ? 0.5 : 0.0);
         }
-        int score = items.isEmpty() ? 0 : (int) Math.round(suma / items.size() * 100.0);
+        int baseScore = items.isEmpty() ? 0 : (int) Math.round(suma / items.size() * 100.0);
+
+        // Factor de completitud del perfil: penaliza datos faltantes
+        int checks = 0, passed = 0;
+        if (pet.getWeight() != null) passed++; checks++;
+        if (pet.getBirthDate() != null) passed++; checks++;
+        if (!rutinas.isEmpty()) passed++; checks++;
+        if (!vacunas.isEmpty()) passed++; checks++;
+        double completeness = checks > 0 ? (double) passed / checks : 0;
+
+        int score = (int) Math.round(baseScore * completeness);
+        String level = score >= 85 ? "Excelente" : score >= 60 ? "Bien" : score >= 35 ? "Atención" : "Atrasado";
 
         WellnessDTO w = new WellnessDTO();
         w.setScore(score);
-        w.setLevel(score >= 85 ? "Excelente" : score >= 60 ? "Bien" : score >= 35 ? "Atención" : "Atrasado");
+        w.setLevel(level);
         w.setItems(items);
         return w;
     }
