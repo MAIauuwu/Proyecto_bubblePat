@@ -357,7 +357,7 @@ export default function PetDetail() {
                 <p className="text-xs">días de racha</p>
               </div>
               {pet.bestStreak > 0 && (
-                <p className="text-xs text-rose-300">🏆 Récord: {pet.bestStreak} días</p>
+                <p className="text-xs text-rose-300">Récord: {pet.bestStreak} días</p>
               )}
               <p className={`text-xs font-medium ${streak.color}`}>{streak.label}</p>
               {totalRoutines === 0 ? (
@@ -377,7 +377,7 @@ export default function PetDetail() {
             <div className="mt-4 pt-4 border-t border-pink-100">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-rose-300 font-medium">
-                  🗓️ Racha desde {pet.streakStartDate} <span className="text-rose-200">(automática)</span>
+                  Racha desde {pet.streakStartDate} <span className="text-rose-200">(automática)</span>
                 </p>
                 <p className="text-[11px] text-rose-200">No se puede modificar ni retroceder</p>
               </div>
@@ -455,7 +455,7 @@ export default function PetDetail() {
         {/* ===== Medallas ===== */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-rose-500">🏅 Logros</h2>
+            <h2 className="text-lg font-bold text-rose-500">Logros</h2>
             <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -494,12 +494,12 @@ export default function PetDetail() {
                   <select value={routineForm.type} onChange={(e) => setRoutineForm({...routineForm, type: e.target.value})}
                     required className={inputClass + ' w-full'}>
                     <option value="">Seleccionar</option>
-                    <option value="feeding">🍖 Alimentación</option>
-                    <option value="walk">🦮 Paseo</option>
-                    <option value="water">💧 Agua</option>
-                    <option value="medicine">💊 Medicina</option>
-                    <option value="bath">🛁 Baño</option>
-                    <option value="other">Otro</option>
+                  <option value="feeding">Alimentación</option>
+                  <option value="walk">Paseo</option>
+                  <option value="water">Agua</option>
+                  <option value="medicine">Medicina</option>
+                  <option value="bath">Baño</option>
+                  <option value="other">Otro</option>
                   </select>
                 </div>
                 <div>

@@ -153,7 +153,7 @@ export default function Dashboard() {
                           🔥 {pet.dailyStreak}
                         </div>
                         {pet.bestStreak > 0 && (
-                          <p className="text-[11px] text-rose-300 mt-1">🏆 Récord {pet.bestStreak}</p>
+                          <p className="text-[11px] text-rose-300 mt-1">Récord {pet.bestStreak}</p>
                         )}
                       </div>
                     </div>

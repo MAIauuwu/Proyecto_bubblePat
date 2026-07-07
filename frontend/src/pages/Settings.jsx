@@ -73,7 +73,7 @@ export default function Settings() {
 
         {/* Temas predefinidos */}
         <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-pink-100">
-          <h3 className="font-bold text-rose-500 mb-3">🎨 Temas</h3>
+          <h3 className="font-bold text-rose-500 mb-3">Temas</h3>
           <div className="grid grid-cols-4 gap-3">
             {presets.map((p) => (
               <button key={p.hue} onClick={() => setHue(p.hue)}
@@ -81,7 +81,7 @@ export default function Settings() {
                   hue === p.hue ? 'border-rose-400 bg-rose-50' : 'border-transparent bg-pink-50/50 hover:bg-pink-100'
                 }`}>
                 <span className="w-8 h-8 rounded-full shadow-inner border border-white" style={{ background: swatch(p.hue) }} />
-                <span className="text-[11px] text-rose-400 font-medium">{p.emoji} {p.name}</span>
+                <span className="text-[11px] text-rose-400 font-medium">{p.name}</span>
               </button>
             ))}
           </div>
@@ -89,7 +89,7 @@ export default function Settings() {
 
         {/* Ruedita personalizada */}
         <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-pink-100">
-          <h3 className="font-bold text-rose-500 mb-1">🌀 Tu propio color</h3>
+          <h3 className="font-bold text-rose-500 mb-1">Tu propio color</h3>
           <p className="text-xs text-rose-300 mb-3">Mueve la ruedita para elegir cualquier tono. Ideal si buscas algo distinto o necesitas más contraste.</p>
           <input type="range" min="0" max="360" value={hue}
             onChange={(e) => setHue(Number(e.target.value))}
@@ -103,7 +103,7 @@ export default function Settings() {
 
         {/* Vista previa en vivo */}
         <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-pink-100">
-          <h3 className="font-bold text-rose-500 mb-3">👁️ Vista previa</h3>
+          <h3 className="font-bold text-rose-500 mb-3">Vista previa</h3>
           <div className="rounded-xl border border-pink-100 p-4 bg-pink-50/50 space-y-3">
             <div className="flex items-center gap-2">
               <span className="bg-rose-300 text-white px-4 py-2 rounded-lg text-sm font-medium">Botón primario</span>
