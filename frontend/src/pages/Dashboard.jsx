@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import api from '../api/client';
 import logo from '../assets/BubblePat.png';
 import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
+import SpeciesCare from '../components/SpeciesCare';
 
 const statCard = 'bg-white/70 backdrop-blur-sm rounded-xl border border-pink-100 p-4 text-center shadow-sm';
 
@@ -215,8 +216,10 @@ export default function Dashboard() {
                 </div>
               );
             })}
-          </div>
-        )}
+           </div>
+         )}
+
+        <SpeciesCare />
       </div>
     </div>
   );
