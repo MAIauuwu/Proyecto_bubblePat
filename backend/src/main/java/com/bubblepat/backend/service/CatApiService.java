@@ -17,6 +17,9 @@ public class CatApiService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private ImageCache imageCache;
+
     public List<CatBreedDTO> getAllBreeds() {
         return restTemplate.exchange(
                 BASE_URL + "/breeds",
@@ -26,17 +29,13 @@ public class CatApiService {
         ).getBody();
     }
 
+    // Con caché: la primera petición consulta la API, las siguientes se sirven desde memoria.
     public CatImageDTO getRandomImage() {
-        List<CatImageDTO> images = restTemplate.exchange(
-                BASE_URL + "/images/search",
-                org.springframework.http.HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<CatImageDTO>>() {}
-        ).getBody();
-        if (images != null && !images.isEmpty()) {
-            return images.get(0);
-        }
-        return null;
+        String url = imageCache.get("cat:random", this::fetchRandomCatUrl);
+        if (url == null) return null;
+        CatImageDTO d = new CatImageDTO();
+        d.setUrl(url);
+        return d;
     }
 
     public CatImageDTO getImageByBreed(String breedId) {
@@ -53,6 +52,26 @@ public class CatApiService {
     }
 
     public String getImageUrlByBreedName(String breedName) {
+        return imageCache.get("cat:breed:" + breedName.toLowerCase(), () -> fetchBreedCatUrl(breedName));
+    }
+
+    // === Fetchers (llaman a la API; sin caché) ===
+
+    private String fetchRandomCatUrl() {
+        try {
+            List<CatImageDTO> images = restTemplate.exchange(
+                    BASE_URL + "/images/search",
+                    org.springframework.http.HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<CatImageDTO>>() {}
+            ).getBody();
+            return (images != null && !images.isEmpty()) ? images.get(0).getUrl() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String fetchBreedCatUrl(String breedName) {
         try {
             List<CatBreedDTO> breeds = getAllBreeds();
             if (breeds != null) {
