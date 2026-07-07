@@ -411,8 +411,7 @@ export default function PetDetail() {
             </div>
             <div className="space-y-2">
               {pet.insights.map((ins, i) => (
-                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${insightStyle[ins.type] || insightStyle.info}`}>
-                  <span className="text-xl shrink-0">{ins.icon}</span>
+                <div key={i} className={`p-3 rounded-xl border ${insightStyle[ins.type] || insightStyle.info}`}>
                   <div className="min-w-0">
                     <p className="font-semibold text-sm">{ins.title}</p>
                     <p className="text-sm opacity-90">{ins.message}</p>
