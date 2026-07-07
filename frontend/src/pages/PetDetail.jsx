@@ -64,6 +64,7 @@ export default function PetDetail() {
   const [quickData, setQuickData] = useState({ weight: '', deworming: '', vaccine: { name: '', appliedDate: '', nextDoseDate: '' } });
   const [routineView, setRoutineView] = useState('today');
   const [showMenu, setShowMenu] = useState(false);
+  const [showForm, setShowForm] = useState({ routine: false, vaccine: false, reminder: false });
 
   useEffect(() => {
     loadPet();
@@ -326,6 +327,11 @@ export default function PetDetail() {
     return da - db;
   });
 
+  const nextReminder = sortedReminders.find((r) => !r.completed);
+  const bannerText = pet.routineDoneToday
+    ? (nextReminder ? `${nextReminder.title} · ${relativeText(nextReminder) || formatDateTime(nextReminder.reminderDate) || ''}` : null)
+    : (pet.insights?.[0]?.message || `${doneTodayCount}/${totalRoutines} rutinas pendientes hoy`);
+
   const inputClass = 'px-3 py-2 border border-pink-100 rounded-lg text-sm bg-pink-50/50 focus:ring-2 focus:ring-rose-300 outline-none';
   const btnPrimary = 'bg-rose-300 text-white px-4 py-2 rounded-lg text-sm hover:bg-rose-400 transition shadow-sm';
   const btnSecondary = 'bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-xs hover:bg-gray-200 transition';
@@ -457,28 +463,29 @@ export default function PetDetail() {
           )}
         </div>
 
-        {/* ===== Asistente BubblePat (mensajes inteligentes) ===== */}
-        {pet.insights && pet.insights.length > 0 && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border-2 border-pink-200 p-6 bubble-pop">
-            <div className="flex items-center gap-3 mb-4">
-              <img src={logo} alt="BubblePat" className="h-12 w-12 rounded-full bg-pink-50 p-1 border border-pink-100" />
-              <div>
-                <h2 className="text-lg font-bold text-rose-500 leading-tight">Asistente BubblePat</h2>
-                <p className="text-xs text-rose-300">Pensando en {pet.name}…</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {pet.insights.map((ins, i) => (
-                <div key={i} className={`p-3 rounded-xl border ${insightStyle[ins.type] || insightStyle.info}`}>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm">{ins.title}</p>
-                    <p className="text-sm opacity-90">{ins.message}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* ===== Banner de estado compacto ===== */}
+        <div className={`rounded-xl p-4 flex items-center gap-3 border-l-4 ${
+          pet.routineDoneToday
+            ? 'bg-emerald-50 border-emerald-400'
+            : 'bg-amber-50 border-amber-400'
+        }`}>
+          <img src={logo} alt="BubblePat" className="h-10 w-10 rounded-full bg-white/80 p-0.5 border border-pink-100 shrink-0" />
+          <div className="min-w-0 flex-1">
+            {pet.routineDoneToday ? (
+              <>
+                <p className="text-xs font-bold text-emerald-600">Rutinas de hoy completadas</p>
+                <p className="text-sm text-emerald-700 truncate">
+                  {bannerText ? `Próximo: ${bannerText}` : '¡Todo al día! No hay eventos pendientes.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-amber-600">Asistente BubblePat</p>
+                <p className="text-sm text-amber-700 truncate">{bannerText}</p>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         <SpeciesCare species={pet.species} />
 
@@ -523,7 +530,7 @@ export default function PetDetail() {
                 className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
                   b.earned
                     ? 'bg-gradient-to-br from-amber-50 to-rose-50 border-amber-200'
-                    : 'bg-gray-50 border-gray-100 opacity-50 grayscale'
+                    : 'bg-gray-50 border-gray-100 opacity-25 grayscale'
                 }`}>
                 <span className="text-2xl">{b.earned ? b.emoji : '🔒'}</span>
                 <span className={`text-[11px] mt-1 font-medium ${b.earned ? 'text-rose-400' : 'text-gray-400'}`}>{b.label}</span>
@@ -548,7 +555,13 @@ export default function PetDetail() {
 
         {activeTab === 'routines' && (
           <div className="space-y-4">
-            <form onSubmit={addRoutine} className={cardClass}>
+            <button onClick={() => setShowForm({ ...showForm, routine: !showForm.routine })}
+              className="w-full text-left px-4 py-3 rounded-xl bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition flex items-center justify-between">
+              <span>{showForm.routine ? 'Cancelar nueva rutina' : '+ Nueva rutina'}</span>
+              <span className="text-xs text-rose-300">{showForm.routine ? '▲' : '▼'}</span>
+            </button>
+            {showForm.routine && (
+            <form onSubmit={(e) => { addRoutine(e); setShowForm({ ...showForm, routine: false }); }} className={cardClass}>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-rose-300 mb-1">Tipo *</label>
@@ -585,7 +598,7 @@ export default function PetDetail() {
                   <div className="flex gap-1 flex-wrap">
                     {DAYS.map((d) => (
                       <button type="button" key={d.code} onClick={() => toggleDay(d.code)}
-                        className={`w-9 h-9 rounded-lg text-sm font-bold transition ${
+                        className={`w-11 h-11 rounded-lg text-base font-bold transition ${
                           routineForm.days.includes(d.code) ? 'bg-rose-300 text-white' : 'bg-pink-50 text-rose-300 border border-pink-100 hover:bg-rose-100'
                         }`}>{d.label}</button>
                     ))}
@@ -601,6 +614,7 @@ export default function PetDetail() {
                 )}
               </div>
             </form>
+            )}
 
             {(!pet.routines || pet.routines.length === 0) && (
               <div className={`${cardClass} text-center text-rose-300 text-sm`}>
@@ -626,28 +640,30 @@ export default function PetDetail() {
             }).map((r) => {
               const schedule = formatSchedule(r);
               return (
-                <div key={r.id} className={`${cardClass} ${r.doneToday ? 'opacity-60' : ''}`}>
+                <div key={r.id} className={`${cardClass} ${r.doneToday ? 'opacity-50' : ''} border-l-4 ${r.doneToday ? 'border-l-emerald-300' : r.appliesToday ? 'border-l-amber-300' : 'border-l-gray-200'}`}>
                   <div className="flex justify-between items-center gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-rose-400">{r.typeLabel}</span>
                         {!r.appliesToday && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">No aplica hoy</span>
                         )}
-                        {r.doneToday && <span className="text-emerald-500 text-sm">✓ Hecha hoy</span>}
+                        {r.doneToday && <span className="text-emerald-500 text-xs font-medium">Hecha hoy</span>}
                       </div>
                       {r.description && <p className="text-rose-200 text-sm mt-0.5">{r.description}</p>}
                       {schedule && <p className="text-rose-300 text-xs mt-1">{schedule}</p>}
                     </div>
-                    <div className="flex gap-2 items-center shrink-0">
+                    <div className="flex gap-1 items-center shrink-0">
                       {r.appliesToday && !r.doneToday && (
                         <button onClick={() => completeRoutine(r.id)}
-                          className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-sm hover:bg-emerald-300 transition">
+                          className="bg-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-300 transition">
                           Completar
                         </button>
                       )}
-                      <button onClick={() => startEditRoutine(r)} className={btnSecondary}>Editar</button>
-                      <button onClick={() => deleteRoutine(r.id)} className={btnDanger}>Eliminar</button>
+                      <button onClick={() => startEditRoutine(r)} title="Editar"
+                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">✎</button>
+                      <button onClick={() => deleteRoutine(r.id)} title="Eliminar"
+                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">🗑</button>
                     </div>
                   </div>
                 </div>
@@ -658,7 +674,13 @@ export default function PetDetail() {
 
         {activeTab === 'vaccinations' && (
           <div className="space-y-4">
-            <form onSubmit={addVaccination} className={cardClass}>
+            <button onClick={() => setShowForm({ ...showForm, vaccine: !showForm.vaccine })}
+              className="w-full text-left px-4 py-3 rounded-xl bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition flex items-center justify-between">
+              <span>{showForm.vaccine ? 'Cancelar' : '+ Nueva vacuna'}</span>
+              <span className="text-xs text-rose-300">{showForm.vaccine ? '▲' : '▼'}</span>
+            </button>
+            {showForm.vaccine && (
+            <form onSubmit={(e) => { addVaccination(e); setShowForm({ ...showForm, vaccine: false }); }} className={cardClass}>
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Nombre de vacuna *" value={vaccineForm.name}
                   onChange={(e) => setVaccineForm({...vaccineForm, name: e.target.value})} required
@@ -686,29 +708,43 @@ export default function PetDetail() {
                 )}
               </div>
             </form>
+            )}
 
             {pet.vaccinations?.map((v) => {
               const vb = vaccineBadge(v);
+              const borderColor = v.status === 'vencida' ? 'border-l-rose-400'
+                : v.status === 'por_vencer' ? 'border-l-amber-400' : 'border-l-emerald-400';
               return (
-                <div key={v.id} className={cardClass}>
+                <div key={v.id} className={`${cardClass} border-l-4 ${borderColor}`}>
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-rose-400">{v.name}</h3>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${vb.cls}`}>{vb.text}</span>
                       </div>
                       <div className="text-sm text-rose-300 mt-1">
                         {v.appliedDate && <span>Aplicada: {v.appliedDate}</span>}
-                        {v.nextDoseDate && <span className="ml-4">Próxima dosis: {v.nextDoseDate}</span>}
-                        {v.vetName && <span className="ml-4">Vet: {v.vetName}</span>}
+                        {v.nextDoseDate && <span className="ml-4">Próxima: {v.nextDoseDate}</span>}
                       </div>
                       {v.notes && <p className="text-rose-200 text-sm mt-1">{v.notes}</p>}
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => startEditVaccine(v)} className={btnSecondary}>Editar</button>
-                      <button onClick={() => deleteVaccination(v.id)} className={btnDanger}>Eliminar</button>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => startEditVaccine(v)} title="Editar"
+                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">✎</button>
+                      <button onClick={() => deleteVaccination(v.id)} title="Eliminar"
+                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">🗑</button>
                     </div>
                   </div>
+                  {v.status === 'por_vencer' && (
+                    <div className="mt-2 h-1 rounded-full bg-amber-100 overflow-hidden">
+                      <div className="h-full bg-amber-400" style={{ width: '70%' }} />
+                    </div>
+                  )}
+                  {v.status === 'vencida' && (
+                    <div className="mt-2 h-1 rounded-full bg-rose-100 overflow-hidden">
+                      <div className="h-full bg-rose-400" style={{ width: '100%' }} />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -717,7 +753,13 @@ export default function PetDetail() {
 
         {activeTab === 'reminders' && (
           <div className="space-y-4">
-            <form onSubmit={addReminder} className={cardClass}>
+            <button onClick={() => setShowForm({ ...showForm, reminder: !showForm.reminder })}
+              className="w-full text-left px-4 py-3 rounded-xl bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition flex items-center justify-between">
+              <span>{showForm.reminder ? 'Cancelar' : '+ Nuevo recordatorio'}</span>
+              <span className="text-xs text-rose-300">{showForm.reminder ? '▲' : '▼'}</span>
+            </button>
+            {showForm.reminder && (
+            <form onSubmit={(e) => { addReminder(e); setShowForm({ ...showForm, reminder: false }); }} className={cardClass}>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block text-xs text-rose-300 mb-1">Título *</label>
@@ -754,6 +796,7 @@ export default function PetDetail() {
                 )}
               </div>
             </form>
+            )}
 
             {sortedReminders.length === 0 && (
               <div className={`${cardClass} text-center text-rose-300 text-sm`}>
@@ -764,10 +807,14 @@ export default function PetDetail() {
             {sortedReminders.map((r) => {
               const badge = reminderBadge(r);
               const rel = relativeText(r);
+              const borderColor = r.completed ? 'border-l-gray-200'
+                : r.status === 'vencido' ? 'border-l-rose-400'
+                : (r.status === 'hoy' || r.status === 'proximo') ? 'border-l-amber-400'
+                : 'border-l-sky-400';
               return (
-                <div key={r.id} className={`${cardClass} ${r.completed ? 'opacity-60' : ''}`}>
+                <div key={r.id} className={`${cardClass} ${r.completed ? 'opacity-50' : ''} border-l-4 ${borderColor}`}>
                   <div className="flex justify-between items-start gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-rose-400">{r.title}</h3>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
@@ -775,7 +822,7 @@ export default function PetDetail() {
                         </span>
                         {r.automatic && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-500 font-medium">
-                            ⚙️ Automático
+                            Auto
                           </span>
                         )}
                       </div>
@@ -785,19 +832,30 @@ export default function PetDetail() {
                         {rel && <span className="ml-2 font-medium text-rose-400">· {rel}</span>}
                       </p>
                     </div>
-                    <div className="flex gap-2 items-center shrink-0">
+                    <div className="flex gap-1 items-center shrink-0">
                       {!r.completed && (
-                        <>
-                          <button onClick={() => startEditReminder(r)} className={btnSecondary}>Editar</button>
-                          <button onClick={() => completeReminder(r.id)}
-                            className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-xs hover:bg-emerald-300 transition">
-                            Completar
-                          </button>
-                        </>
+                        <button onClick={() => completeReminder(r.id)}
+                          className="bg-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-300 transition">
+                          Completar
+                        </button>
                       )}
-                      <button onClick={() => deleteReminder(r.id)} className={btnDanger}>Eliminar</button>
+                      {!r.completed && (
+                        <button onClick={() => startEditReminder(r)} title="Editar"
+                          className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">✎</button>
+                      )}
+                      <button onClick={() => deleteReminder(r.id)} title="Eliminar"
+                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">🗑</button>
                     </div>
                   </div>
+                  {!r.completed && (r.status === 'vencido' || r.status === 'hoy' || r.status === 'proximo') && (
+                    <div className="mt-2 h-1 rounded-full overflow-hidden"
+                      style={{ background: r.status === 'vencido' ? '#fecdd3' : '#fef3c7' }}>
+                      <div className="h-full" style={{
+                        width: r.status === 'vencido' ? '100%' : '70%',
+                        background: r.status === 'vencido' ? '#fb7185' : '#fbbf24'
+                      }} />
+                    </div>
+                  )}
                 </div>
               );
             })}
