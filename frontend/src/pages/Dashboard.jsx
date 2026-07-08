@@ -104,7 +104,7 @@ export default function Dashboard() {
               <p className="text-xs text-rose-300">Bienestar promedio</p>
             </div>
             <div className={statCard}>
-              <p className="text-2xl font-bold text-amber-500">{activeStreaks}</p>
+              <p className="text-2xl font-bold text-amber-500">🔥 {activeStreaks}</p>
               <p className="text-xs text-rose-300">Rachas activas</p>
             </div>
             <div className={statCard}>
