@@ -105,4 +105,26 @@ class PetServiceTest {
         assertThrows(RuntimeException.class, () -> petService.obtenerPorId(99L, "dueno@bubblepat.com"));
     }
 
+    // ===================== ACTUALIZAR =====================
+
+    @Test
+    void actualizar_modificaCampos() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(i -> i.getArgument(0));
+
+        PetRequest req = requestValido();
+        req.setName("Luna Nueva");
+
+        PetResponse resp = petService.actualizar(10L, req, "dueno@bubblepat.com");
+        assertEquals("Luna Nueva", resp.getName());
+    }
+
+    @Test
+    void actualizar_otroUsuario_lanza() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        assertThrows(RuntimeException.class,
+                () -> petService.actualizar(10L, requestValido(), "intruso@bubblepat.com"));
+    }
 }
