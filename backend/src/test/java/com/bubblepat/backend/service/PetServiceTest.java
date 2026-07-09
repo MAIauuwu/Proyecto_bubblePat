@@ -148,6 +148,8 @@ class PetServiceTest {
     }
 // ===================== RACHA (núcleo del negocio) =====================
 
+    // ===================== RACHA (núcleo del negocio) =====================
+
     @Test
     void actualizarRacha_primeraVez_streakEn1() {
         Pet pet = petDeOwner();
@@ -161,4 +163,75 @@ class PetServiceTest {
         assertEquals(LocalDate.now(), pet.getLastRoutineDate());
         assertTrue(resp.isRoutineDoneToday());
     }
+
+    @Test
+    void actualizarRacha_diaConsecutivo_incrementaStreak() {
+        Pet pet = petDeOwner();
+        pet.setDailyStreak(5);
+        pet.setBestStreak(5);
+        pet.setLastRoutineDate(LocalDate.now().minusDays(1));
+
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(i -> i.getArgument(0));
+
+        petService.actualizarRacha(10L, "dueno@bubblepat.com");
+
+        assertEquals(6, pet.getDailyStreak());
+        assertEquals(6, pet.getBestStreak());
+    }
+
+    @Test
+    void actualizarRacha_rachaRota_reseteaA1() {
+        Pet pet = petDeOwner();
+        pet.setDailyStreak(10);
+        pet.setBestStreak(10);
+        pet.setLastRoutineDate(LocalDate.now().minusDays(3));
+
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(i -> i.getArgument(0));
+
+        petService.actualizarRacha(10L, "dueno@bubblepat.com");
+
+        assertEquals(1, pet.getDailyStreak());
+        assertEquals(10, pet.getBestStreak()); // el récord no baja
+        assertEquals(LocalDate.now(), pet.getLastRoutineDate());
+    }
+
+    @Test
+    void actualizarRacha_mismoDia_lanzaExcepcion() {
+        Pet pet = petDeOwner();
+        pet.setLastRoutineDate(LocalDate.now());
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> petService.actualizarRacha(10L, "dueno@bubblepat.com"));
+        assertEquals("Ya completaste la rutina de hoy", ex.getMessage());
+    }
+
+    @Test
+    void actualizarRacha_otroUsuario_lanza() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        assertThrows(RuntimeException.class, () -> petService.actualizarRacha(10L, "intruso@bubblepat.com"));
+    }
+
+    @Test
+    void actualizarRacha_alcanzaHitoDe3_registraActividadStreak() {
+        Pet pet = petDeOwner();
+        pet.setDailyStreak(2);
+        pet.setBestStreak(2);
+        pet.setLastRoutineDate(LocalDate.now().minusDays(1));
+
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(i -> i.getArgument(0));
+
+        petService.actualizarRacha(10L, "dueno@bubblepat.com");
+
+        assertEquals(3, pet.getDailyStreak());
+        ArgumentCaptor<ActivityLog> captor = ArgumentCaptor.forClass(ActivityLog.class);
+        verify(activityLogRepository).save(captor.capture());
+        assertEquals("STREAK", captor.getValue().getType());
+        assertTrue(captor.getValue().getTitle().contains("3"));
+    }
+
 }
