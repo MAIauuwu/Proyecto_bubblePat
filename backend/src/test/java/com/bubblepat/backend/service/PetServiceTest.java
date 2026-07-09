@@ -318,4 +318,83 @@ class PetServiceTest {
         assertThrows(RuntimeException.class,
                 () -> petService.agregarRutina(10L, new RoutineRequest(), "intruso@bubblepat.com"));
     }
+// ===================== VACUNAS =====================
+
+    @Test
+    void agregarVacuna_conProximaDosis_creaRecordatorioAutomatico() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(vaccinationRepository.save(any(Vaccination.class))).thenAnswer(i -> {
+            Vaccination v = i.getArgument(0);
+            v.setId(5L);
+            return v;
+        });
+        when(reminderRepository.findBySource("VACCINE:5")).thenReturn(List.of());
+        when(reminderRepository.save(any(Reminder.class))).thenAnswer(i -> i.getArgument(0));
+        when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(i -> i.getArgument(0));
+
+        VaccinationRequest req = new VaccinationRequest();
+        req.setName("Rabia");
+        req.setAppliedDate(LocalDate.now());
+        req.setNextDoseDate(LocalDate.now().plusMonths(6));
+
+        VaccinationResponse resp = petService.agregarVacuna(10L, req, "dueno@bubblepat.com");
+
+        assertEquals("Rabia", resp.getName());
+        ArgumentCaptor<Reminder> reminderCaptor = ArgumentCaptor.forClass(Reminder.class);
+        verify(reminderRepository).save(reminderCaptor.capture());
+        assertEquals("VACCINE:5", reminderCaptor.getValue().getSource());
+        assertTrue(reminderCaptor.getValue().getTitle().contains("Rabia"));
+    }
+
+    @Test
+    void agregarVacuna_sinProximaDosis_noCreaRecordatorio() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(vaccinationRepository.save(any(Vaccination.class))).thenAnswer(i -> {
+            Vaccination v = i.getArgument(0);
+            v.setId(6L);
+            return v;
+        });
+        when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(i -> i.getArgument(0));
+
+        VaccinationRequest req = new VaccinationRequest();
+        req.setName("Moquillo");
+        req.setAppliedDate(LocalDate.now());
+
+        petService.agregarVacuna(10L, req, "dueno@bubblepat.com");
+
+        verify(reminderRepository, never()).save(any(Reminder.class));
+    }
+
+    @Test
+    void listarVacunas_devuelveLista() {
+        Pet pet = petDeOwner();
+        Vaccination vac = new Vaccination();
+        vac.setId(1L);
+        vac.setName("Rabia");
+
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(vaccinationRepository.findByPetId(10L)).thenReturn(List.of(vac));
+
+        List<VaccinationResponse> lista = petService.listarVacunas(10L, "dueno@bubblepat.com");
+        assertEquals(1, lista.size());
+        assertEquals("Rabia", lista.get(0).getName());
+    }
+
+    @Test
+    void eliminarVacuna_borraRecordatorioAsociadoYVacuna() {
+        Pet pet = petDeOwner();
+        Vaccination vac = new Vaccination();
+        vac.setId(7L);
+        vac.setPet(pet);
+        vac.setName("Rabia");
+
+        when(vaccinationRepository.findById(7L)).thenReturn(Optional.of(vac));
+        when(reminderRepository.findBySource("VACCINE:7")).thenReturn(List.of());
+
+        petService.eliminarVacuna(7L, "dueno@bubblepat.com");
+        verify(vaccinationRepository).delete(vac);
+    }
+
 }
