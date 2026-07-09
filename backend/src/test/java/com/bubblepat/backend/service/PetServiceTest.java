@@ -397,4 +397,92 @@ class PetServiceTest {
         verify(vaccinationRepository).delete(vac);
     }
 
+// ===================== RECORDATORIOS =====================
+
+    @Test
+    void agregarRecordatorio_guardaYDevuelve() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(reminderRepository.save(any(Reminder.class))).thenAnswer(i -> {
+            Reminder r = i.getArgument(0);
+            r.setId(1L);
+            return r;
+        });
+
+        ReminderRequest req = new ReminderRequest();
+        req.setTitle("Cita veterinaria");
+        req.setReminderDate(LocalDateTime.now().plusDays(5));
+
+        ReminderResponse resp = petService.agregarRecordatorio(10L, req, "dueno@bubblepat.com");
+        assertEquals("Cita veterinaria", resp.getTitle());
+    }
+
+    @Test
+    void listarRecordatorios_devuelveLista() {
+        Pet pet = petDeOwner();
+        Reminder rem = new Reminder();
+        rem.setId(1L);
+        rem.setTitle("Baño");
+
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(reminderRepository.findByPetId(10L)).thenReturn(List.of(rem));
+
+        List<ReminderResponse> lista = petService.listarRecordatorios(10L, "dueno@bubblepat.com");
+        assertEquals(1, lista.size());
+    }
+
+    @Test
+    void completarRecordatorio_marcaCompletadoYRegistraActividad() {
+        Pet pet = petDeOwner();
+        Reminder rem = new Reminder();
+        rem.setId(1L);
+        rem.setPet(pet);
+        rem.setTitle("Cita vet");
+
+        when(reminderRepository.findById(1L)).thenReturn(Optional.of(rem));
+        when(reminderRepository.save(any(Reminder.class))).thenAnswer(i -> i.getArgument(0));
+        when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReminderResponse resp = petService.completarRecordatorio(1L, "dueno@bubblepat.com");
+        assertTrue(resp.isCompleted());
+        verify(activityLogRepository).save(any(ActivityLog.class));
+    }
+
+    @Test
+    void editarRecordatorio_actualizaCampos() {
+        Pet pet = petDeOwner();
+        Reminder rem = new Reminder();
+        rem.setId(1L);
+        rem.setPet(pet);
+
+        when(reminderRepository.findById(1L)).thenReturn(Optional.of(rem));
+        when(reminderRepository.save(any(Reminder.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReminderRequest req = new ReminderRequest();
+        req.setTitle("Nuevo título");
+
+        ReminderResponse resp = petService.editarRecordatorio(1L, req, "dueno@bubblepat.com");
+        assertEquals("Nuevo título", resp.getTitle());
+    }
+
+    @Test
+    void eliminarRecordatorio_borra() {
+        Pet pet = petDeOwner();
+        Reminder rem = new Reminder();
+        rem.setId(1L);
+        rem.setPet(pet);
+
+        when(reminderRepository.findById(1L)).thenReturn(Optional.of(rem));
+
+        petService.eliminarRecordatorio(1L, "dueno@bubblepat.com");
+        verify(reminderRepository).delete(rem);
+    }
+
+    @Test
+    void agregarRecordatorio_otroUsuario_lanza() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        assertThrows(RuntimeException.class,
+                () -> petService.agregarRecordatorio(10L, new ReminderRequest(), "intruso@bubblepat.com"));
+    }
 }
