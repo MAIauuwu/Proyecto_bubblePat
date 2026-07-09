@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/BubblePat.png';
 import icon from '../assets/BubblePatIcon.png';
-import heroImg from '../assets/hero.png';
+import heroImg from '../assets/hero-web.png';
 import { useAuth } from '../context/AuthContext';
 
 /* Iconos SVG inline (sin dependencias externas) */
