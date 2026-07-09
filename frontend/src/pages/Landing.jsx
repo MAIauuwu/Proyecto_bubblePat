@@ -233,6 +233,7 @@ export default function Landing() {
             <h4 className="font-semibold text-rose-500 mb-3">Contacto</h4>
             <ul className="space-y-2 text-sm text-rose-300">
               <li>mau.ramirezn@duocuc.cl</li>
+              <li>all.sepulveda@duocuc.cl</li>
               <li className="flex items-center gap-1.5"><Icon.Lock className="w-4 h-4" /> Datos seguros y privados</li>
             </ul>
           </div>
