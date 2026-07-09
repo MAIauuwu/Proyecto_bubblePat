@@ -13,11 +13,16 @@ export const SPECIES_GRADIENT = {
   Otro: 'from-gray-200 to-rose-200',
 };
 
-// Para especies sin API de imágenes (Ave, Conejo, Pez, Otro) se usa el
-// fallback de emoji + gradiente (ver SPECIES_EMOJI / SPECIES_GRADIENT),
-// que siempre muestra el animal correcto de forma fiable.
-export function getGenericSpeciesImage(species, seed) {
-  return null;
+// Imagen real para especies sin API dedicada (Ave, Conejo, Pez, Otro)
+// via Wikimedia Commons (proxy del backend). Devuelve null si falla,
+// y el llamador usa el fallback de emoji + gradiente.
+export async function getGenericSpeciesImage(species, seed) {
+  try {
+    const { data } = await api.get('/animals/image', { params: { species, seed } });
+    return data.imageUrl || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function searchDogBreeds(query) {

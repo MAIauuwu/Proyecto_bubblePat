@@ -39,7 +39,7 @@ export default function Dashboard() {
           img = pet.breed ? await getCatImageByBreed(pet.breed) : null;
           if (!img) img = await getRandomCatImage();
         } else {
-          img = getGenericSpeciesImage(pet.species, pet.id);
+          img = await getGenericSpeciesImage(pet.species, pet.id);
         }
         images[pet.id] = img;
       } catch {}

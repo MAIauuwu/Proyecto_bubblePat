@@ -83,7 +83,7 @@ export default function PetDetail() {
           img = data.breed ? await getCatImageByBreed(data.breed) : null;
           if (!img) img = await getRandomCatImage();
         } else {
-          img = getGenericSpeciesImage(data.species, data.id);
+          img = await getGenericSpeciesImage(data.species, data.id);
         }
       } catch {}
       setBreedImage(img);
