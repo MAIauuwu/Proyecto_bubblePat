@@ -127,4 +127,23 @@ class PetServiceTest {
         assertThrows(RuntimeException.class,
                 () -> petService.actualizar(10L, requestValido(), "intruso@bubblepat.com"));
     }
+// ===================== ELIMINAR =====================
+
+    @Test
+    void eliminar_borraActividadesYMascota() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+
+        petService.eliminar(10L, "dueno@bubblepat.com");
+
+        verify(activityLogRepository).deleteByPetId(10L);
+        verify(petRepository).delete(pet);
+    }
+
+    @Test
+    void eliminar_otroUsuario_lanza() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        assertThrows(RuntimeException.class, () -> petService.eliminar(10L, "intruso@bubblepat.com"));
+    }
 }
