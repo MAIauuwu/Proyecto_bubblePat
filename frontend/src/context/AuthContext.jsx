@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('userName', data.name);
     localStorage.setItem('userEmail', data.email);
     setUser({ token: data.token, name: data.name, email: data.email });
-    applyHue(data.themeHue != null ? data.themeHue : 350);
+    applyHue(data.themeHue != null ? data.themeHue : 265);
   };
 
   const login = async (email, password) => {

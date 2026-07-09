@@ -191,7 +191,7 @@ export default function Landing() {
           </div>
           <div className="flex-1 text-center sm:text-left">
             <h3 className="text-lg font-bold text-rose-500">Tus datos están seguros y son privados</h3>
-            <p className="text-rose-300 text-sm mt-1">Usamos autenticación con tokens (JWT). Tu información y la de tu mascota nunca se comparten con terceros.</p>
+            <p className="text-rose-300 text-sm mt-1">Tu información y la de tu mascota están protegidas y nunca se comparten con terceros.</p>
           </div>
           {!authed && (
             <Link to="/register" className="bg-rose-300 text-white px-6 py-2.5 rounded-lg hover:bg-rose-400 transition font-semibold shadow-sm whitespace-nowrap">Crear cuenta</Link>

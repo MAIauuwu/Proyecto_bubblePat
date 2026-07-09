@@ -34,7 +34,7 @@ function applyHueCss(hue) {
 export function ThemeProvider({ children }) {
   const [hue, setHueState] = useState(() => {
     const saved = localStorage.getItem('bp_hue');
-    return saved !== null ? Number(saved) : 350; // Rosa por defecto
+    return saved !== null ? Number(saved) : 265; // Lavanda por defecto
   });
 
   useEffect(() => {
