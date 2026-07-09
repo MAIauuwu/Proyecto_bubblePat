@@ -26,4 +26,14 @@ public class BreedSearchController {
     public ResponseEntity<List<String>> searchCats(@RequestParam("q") String q) {
         return ResponseEntity.ok(breedSearchService.searchCats(q));
     }
+
+    @GetMapping("/dogs/all")
+    public ResponseEntity<List<String>> allDogs() {
+        return ResponseEntity.ok(breedSearchService.allDogs());
+    }
+
+    @GetMapping("/cats/all")
+    public ResponseEntity<List<String>> allCats() {
+        return ResponseEntity.ok(breedSearchService.allCats());
+    }
 }

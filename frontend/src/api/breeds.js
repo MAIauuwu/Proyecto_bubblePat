@@ -13,13 +13,11 @@ export const SPECIES_GRADIENT = {
   Otro: 'from-gray-200 to-rose-200',
 };
 
-// Foto real genérica por especie (para Ave, Conejo, Pez, Otro) vía LoremFlickr.
-// 'lock' hace que la imagen sea estable por mascota (no cambie en cada recarga).
-const SPECIES_TAG = { Ave: 'bird', Conejo: 'rabbit', Pez: 'fish', Otro: 'pet' };
+// Para especies sin API de imágenes (Ave, Conejo, Pez, Otro) se usa el
+// fallback de emoji + gradiente (ver SPECIES_EMOJI / SPECIES_GRADIENT),
+// que siempre muestra el animal correcto de forma fiable.
 export function getGenericSpeciesImage(species, seed) {
-  const tag = SPECIES_TAG[species];
-  if (!tag) return null;
-  return `https://loremflickr.com/600/400/${tag}?lock=${seed ?? 1}`;
+  return null;
 }
 
 export async function searchDogBreeds(query) {
@@ -37,6 +35,24 @@ export async function searchCatBreeds(query) {
   try {
     const { data } = await api.get('/breeds/cats', { params: { q: query } });
     return data.map((name) => ({ name }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getAllDogBreeds() {
+  try {
+    const { data } = await api.get('/breeds/dogs/all');
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+export async function getAllCatBreeds() {
+  try {
+    const { data } = await api.get('/breeds/cats/all');
+    return data;
   } catch {
     return [];
   }

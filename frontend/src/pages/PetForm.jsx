@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
-import { searchDogBreeds, searchCatBreeds } from '../api/breeds';
+import { getAllDogBreeds, getAllCatBreeds } from '../api/breeds';
 
 export default function PetForm() {
   const navigate = useNavigate();
@@ -16,8 +16,8 @@ export default function PetForm() {
   const [submitting, setSubmitting] = useState(false);
   const [breedSuggestions, setBreedSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [allBreeds, setAllBreeds] = useState([]);
   const suggestionsRef = useRef(null);
-  const debounceRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -47,34 +47,37 @@ export default function PetForm() {
         allergicTo: data.allergicTo || '',
         lastDeworming: data.lastDeworming || ''
       });
+      loadBreedsFor(data.species);
     } catch (err) {
       setError('Error al cargar mascota');
       navigate('/app');
     }
   };
 
+  const loadBreedsFor = async (species) => {
+    setAllBreeds([]);
+    if (species === 'Perro') setAllBreeds(await getAllDogBreeds());
+    else if (species === 'Gato') setAllBreeds(await getAllCatBreeds());
+  };
+
+  const COMMON_BREEDS = {
+    Perro: ['Quiltro', 'Sin raza'],
+    Gato: ['Sin raza'],
+  };
+
   const handleBreedSearch = (value) => {
     setForm({ ...form, breed: value });
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!value || !form.species) {
+    if (!value) {
       setBreedSuggestions([]);
       setShowSuggestions(false);
       return;
     }
-    debounceRef.current = setTimeout(async () => {
-      try {
-        let results = [];
-        if (form.species === 'Perro') {
-          results = await searchDogBreeds(value);
-        } else if (form.species === 'Gato') {
-          results = await searchCatBreeds(value);
-        }
-        setBreedSuggestions(results.map((r) => r.name));
-        setShowSuggestions(results.length > 0);
-      } catch {
-        setBreedSuggestions([]);
-      }
-    }, 300);
+    const pool = [...(COMMON_BREEDS[form.species] || []), ...allBreeds];
+    const filtered = pool
+      .filter((b) => b.toLowerCase().includes(value.toLowerCase()))
+      .slice(0, 50);
+    setBreedSuggestions(filtered);
+    setShowSuggestions(filtered.length > 0);
   };
 
   const selectBreed = (breed) => {
@@ -130,6 +133,7 @@ export default function PetForm() {
               setForm({ ...form, species: e.target.value, breed: '' });
               setBreedSuggestions([]);
               setShowSuggestions(false);
+              loadBreedsFor(e.target.value);
             }} required
               className="w-full px-4 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-rose-300 outline-none bg-pink-50/50">
               <option value="">Seleccionar...</option>
@@ -150,6 +154,16 @@ export default function PetForm() {
               <span className="absolute right-3 top-9 text-xs text-rose-200">
                 {form.species === 'Perro' ? '🐕' : '🐈'} Autocompletado
               </span>
+            )}
+            {showBreedAutocomplete && COMMON_BREEDS[form.species] && (
+              <div className="flex gap-2 mt-1.5 flex-wrap">
+                {COMMON_BREEDS[form.species].map((b) => (
+                  <button type="button" key={b} onClick={() => selectBreed(b)}
+                    className="text-xs bg-rose-50 text-rose-400 px-2.5 py-1 rounded-full border border-pink-100 hover:bg-rose-100 transition">
+                    {b}
+                  </button>
+                ))}
+              </div>
             )}
             {showSuggestions && breedSuggestions.length > 0 && (
               <ul className="absolute z-10 w-full bg-white border border-pink-100 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
