@@ -70,4 +70,55 @@ class AuthServiceTest {
         assertEquals("El email ya está registrado", ex.getMessage());
         verify(userRepository, never()).save(any());
     }
+// ===================== LOGIN =====================
+
+    @Test
+    void login_credencialesCorrectas_devuelveToken() {
+        User user = new User();
+        user.setEmail("mau@bubblepat.com");
+        user.setPassword("hash");
+        user.setName("Mau");
+
+        when(userRepository.findByEmail("mau@bubblepat.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("123456", "hash")).thenReturn(true);
+        when(jwtUtil.generateToken("mau@bubblepat.com")).thenReturn("jwt-token");
+
+        LoginRequest req = new LoginRequest();
+        req.setEmail("mau@bubblepat.com");
+        req.setPassword("123456");
+
+        AuthResponse resp = authService.login(req);
+
+        assertEquals("jwt-token", resp.getToken());
+        assertEquals("Mau", resp.getName());
+    }
+
+    @Test
+    void login_usuarioNoExiste_lanzaExcepcion() {
+        when(userRepository.findByEmail("nadie@bubblepat.com")).thenReturn(Optional.empty());
+
+        LoginRequest req = new LoginRequest();
+        req.setEmail("nadie@bubblepat.com");
+        req.setPassword("123456");
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(req));
+        assertEquals("Credenciales inválidas", ex.getMessage());
+    }
+
+    @Test
+    void login_passwordIncorrecta_lanzaExcepcion() {
+        User user = new User();
+        user.setEmail("mau@bubblepat.com");
+        user.setPassword("hash");
+
+        when(userRepository.findByEmail("mau@bubblepat.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("mala", "hash")).thenReturn(false);
+
+        LoginRequest req = new LoginRequest();
+        req.setEmail("mau@bubblepat.com");
+        req.setPassword("mala");
+
+        assertThrows(RuntimeException.class, () -> authService.login(req));
+        verify(jwtUtil, never()).generateToken(any());
+    }
 }
