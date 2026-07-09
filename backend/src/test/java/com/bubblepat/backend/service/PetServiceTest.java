@@ -80,4 +80,29 @@ class PetServiceTest {
         return r;
     }
 
-   }
+    // ===================== OBTENER POR ID =====================
+
+    @Test
+    void obtenerPorId_devuelveMascotaDelUsuario() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+
+        PetResponse resp = petService.obtenerPorId(10L, "dueno@bubblepat.com");
+        assertEquals("Luna", resp.getName());
+    }
+
+    @Test
+    void obtenerPorId_otroUsuario_lanzaExcepcion() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+
+        assertThrows(RuntimeException.class, () -> petService.obtenerPorId(10L, "intruso@bubblepat.com"));
+    }
+
+    @Test
+    void obtenerPorId_noExistente_lanzaExcepcion() {
+        when(petRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> petService.obtenerPorId(99L, "dueno@bubblepat.com"));
+    }
+
+}
