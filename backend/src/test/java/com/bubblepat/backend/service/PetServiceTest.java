@@ -234,4 +234,88 @@ class PetServiceTest {
         assertTrue(captor.getValue().getTitle().contains("3"));
     }
 
+    // ===================== RUTINAS =====================
+
+    @Test
+    void agregarRutina_guardaRutina() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(routineRepository.save(any(Routine.class))).thenAnswer(i -> i.getArgument(0));
+        when(routineRepository.findByPetId(10L)).thenReturn(List.of());
+
+        RoutineRequest req = new RoutineRequest();
+        req.setType("feeding");
+        req.setDescription("Desayuno");
+
+        RoutineResponse resp = petService.agregarRutina(10L, req, "dueno@bubblepat.com");
+        assertEquals("feeding", resp.getType());
+        assertEquals("Alimentación", resp.getTypeLabel());
+    }
+
+    @Test
+    void listarRutinas_devuelveLista() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(routineRepository.findByPetId(10L)).thenReturn(List.of(rutina("walk", false, null)));
+
+        List<RoutineResponse> lista = petService.listarRutinas(10L, "dueno@bubblepat.com");
+        assertEquals(1, lista.size());
+    }
+
+    @Test
+    void completarRutina_marcaCompletadaYSincronizaRacha() {
+        Pet pet = petDeOwner();
+        Routine r = rutina("feeding", false, null);
+        r.setPet(pet);
+
+        when(routineRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(routineRepository.save(any(Routine.class))).thenAnswer(i -> i.getArgument(0));
+        when(petRepository.save(any(Pet.class))).thenAnswer(i -> i.getArgument(0));
+        when(routineRepository.findByPetId(10L)).thenReturn(List.of(r));
+
+        RoutineResponse resp = petService.completarRutina(1L, "dueno@bubblepat.com");
+
+        assertTrue(resp.isCompleted());
+        assertNotNull(resp.getCompletedAt());
+        verify(activityLogRepository).save(any(ActivityLog.class));
+    }
+
+    @Test
+    void editarRutina_actualizaCampos() {
+        Pet pet = petDeOwner();
+        Routine r = rutina("feeding", false, null);
+        r.setPet(pet);
+
+        when(routineRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(routineRepository.save(any(Routine.class))).thenAnswer(i -> i.getArgument(0));
+
+        RoutineRequest req = new RoutineRequest();
+        req.setType("walk");
+        req.setDescription("Paseo");
+
+        RoutineResponse resp = petService.editarRutina(1L, req, "dueno@bubblepat.com");
+        assertEquals("walk", resp.getType());
+    }
+
+    @Test
+    void eliminarRutina_borraYSincroniza() {
+        Pet pet = petDeOwner();
+        Routine r = rutina("feeding", false, null);
+        r.setPet(pet);
+
+        when(routineRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(routineRepository.findByPetId(10L)).thenReturn(List.of());
+
+        petService.eliminarRutina(1L, "dueno@bubblepat.com");
+        verify(routineRepository).delete(r);
+    }
+
+    @Test
+    void agregarRutina_otroUsuario_lanza() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+
+        assertThrows(RuntimeException.class,
+                () -> petService.agregarRutina(10L, new RoutineRequest(), "intruso@bubblepat.com"));
+    }
 }
