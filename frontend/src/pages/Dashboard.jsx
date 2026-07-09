@@ -151,7 +151,7 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <div className="bg-amber-50 text-amber-500 px-3 py-1 rounded-full text-sm font-bold inline-block">
-                          {pet.dailyStreak > 0 ? `🔥 ${pet.dailyStreak}` : `🌑`}
+                          🔥 {pet.dailyStreak}
                         </div>
                         {pet.bestStreak > 0 && (
                           <p className="text-[11px] text-rose-300 mt-1">Récord {pet.bestStreak}</p>
