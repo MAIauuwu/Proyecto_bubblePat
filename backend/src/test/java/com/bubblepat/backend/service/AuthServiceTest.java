@@ -121,4 +121,22 @@ class AuthServiceTest {
         assertThrows(RuntimeException.class, () -> authService.login(req));
         verify(jwtUtil, never()).generateToken(any());
     }
+// ===================== GET BY EMAIL =====================
+
+    @Test
+    void getByEmail_usuarioExistente_loDevuelve() {
+        User user = new User();
+        user.setEmail("mau@bubblepat.com");
+        when(userRepository.findByEmail("mau@bubblepat.com")).thenReturn(Optional.of(user));
+
+        User encontrado = authService.getByEmail("mau@bubblepat.com");
+        assertEquals("mau@bubblepat.com", encontrado.getEmail());
+    }
+
+    @Test
+    void getByEmail_noExistente_lanza() {
+        when(userRepository.findByEmail("x@x.com")).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> authService.getByEmail("x@x.com"));
+    }
 }
+
