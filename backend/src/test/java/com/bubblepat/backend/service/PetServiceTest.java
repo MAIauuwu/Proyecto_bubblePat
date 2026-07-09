@@ -146,4 +146,19 @@ class PetServiceTest {
         when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
         assertThrows(RuntimeException.class, () -> petService.eliminar(10L, "intruso@bubblepat.com"));
     }
+// ===================== RACHA (núcleo del negocio) =====================
+
+    @Test
+    void actualizarRacha_primeraVez_streakEn1() {
+        Pet pet = petDeOwner();
+        when(petRepository.findById(10L)).thenReturn(Optional.of(pet));
+        when(petRepository.save(any(Pet.class))).thenAnswer(i -> i.getArgument(0));
+
+        PetResponse resp = petService.actualizarRacha(10L, "dueno@bubblepat.com");
+
+        assertEquals(1, pet.getDailyStreak());
+        assertEquals(1, pet.getBestStreak());
+        assertEquals(LocalDate.now(), pet.getLastRoutineDate());
+        assertTrue(resp.isRoutineDoneToday());
+    }
 }
