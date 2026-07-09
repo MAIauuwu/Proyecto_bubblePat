@@ -89,14 +89,14 @@ export default function PetDetail() {
       setBreedImage(img);
     } catch (err) {
       alert('Error al cargar mascota');
-      navigate('/');
+      navigate('/app');
     }
   };
 
   const handleDelete = async () => {
     if (window.confirm('¿Eliminar esta mascota?')) {
       await api.delete(`/pets/${id}`);
-      navigate('/');
+      navigate('/app');
     }
   };
 
@@ -343,13 +343,13 @@ export default function PetDetail() {
       <nav className="bg-white/60 backdrop-blur-sm border-b border-pink-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')}
+            <button onClick={() => navigate('/app')}
               className="flex items-center gap-1 text-rose-400 hover:text-rose-500 font-medium text-sm transition"
               title="Volver al panel">
               <span className="text-lg">←</span>
               <span className="hidden sm:inline">Atrás</span>
             </button>
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/app" className="flex items-center gap-2">
               <img src={logo} alt="BubblePat" className="h-14" />
             </Link>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import logo from '../assets/BubblePat.png';
 import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
@@ -9,6 +9,7 @@ const statCard = 'bg-white/70 backdrop-blur-sm rounded-xl border border-pink-100
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [pets, setPets] = useState([]);
   const [petImages, setPetImages] = useState({});
 
@@ -73,7 +74,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 sm:gap-4">
             <span className="text-rose-300 text-sm hidden sm:inline">Hola, {user?.name}</span>
             <Link to="/settings" className="text-rose-400 hover:text-rose-500 font-medium text-xs sm:text-sm" title="Configuración / Apariencia">Configuración</Link>
-            <button onClick={logout} className="text-rose-400 hover:text-rose-500 font-medium text-xs sm:text-sm">
+            <button onClick={() => { logout(); navigate('/'); }} className="text-rose-400 hover:text-rose-500 font-medium text-xs sm:text-sm">
               Cerrar Sesión
             </button>
           </div>
@@ -150,7 +151,7 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <div className="bg-amber-50 text-amber-500 px-3 py-1 rounded-full text-sm font-bold inline-block">
-                          {pet.dailyStreak}
+                          {pet.dailyStreak > 0 ? `🔥 ${pet.dailyStreak}` : `🌑`}
                         </div>
                         {pet.bestStreak > 0 && (
                           <p className="text-[11px] text-rose-300 mt-1">Récord {pet.bestStreak}</p>

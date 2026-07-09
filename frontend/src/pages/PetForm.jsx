@@ -49,7 +49,7 @@ export default function PetForm() {
       });
     } catch (err) {
       setError('Error al cargar mascota');
-      navigate('/');
+      navigate('/app');
     }
   };
 
@@ -99,7 +99,7 @@ export default function PetForm() {
       } else {
         await api.post('/pets', payload);
       }
-      navigate('/');
+      navigate('/app');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al guardar mascota');
       setSubmitting(false);
@@ -189,7 +189,7 @@ export default function PetForm() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={() => navigate('/')} disabled={submitting}
+            <button type="button" onClick={() => navigate('/app')} disabled={submitting}
               className="flex-1 border border-pink-200 text-rose-300 py-2 rounded-lg hover:bg-pink-50 transition font-medium disabled:opacity-50">
               Cancelar
             </button>

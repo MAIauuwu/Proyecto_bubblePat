@@ -65,7 +65,7 @@ export default function Settings() {
       <nav className="bg-white/60 backdrop-blur-sm border-b border-pink-100">
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')}
+            <button onClick={() => navigate('/app')}
               className="flex items-center gap-1 text-rose-400 hover:text-rose-500 font-medium text-sm transition"
               title="Volver al panel">
               <span className="text-lg">←</span>
