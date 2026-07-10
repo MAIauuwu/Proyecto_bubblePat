@@ -209,7 +209,7 @@ Ejemplo de respuesta de `/pets/{id}` (extracto):
 ## Estructura del equipo / Autores
 
 - **Maura Ramírez Navarro** — `mau.ramirezn@duocuc.cl` — Desarrollo backend y frontend, organización de tareas.
-- **Allison Sepúlveda** — `all.sepulveda@duocuc.cl` — Documentación, redacción de informes técnicos y levantamiento de requisitos.
+- **Allison Sepúlveda** — `all.sepulveda@duocuc.cl` — Documentación, redacción de informes técnicos, levantamiento de requisitos y QA.
 
 ## Tests / Pruebas
 
