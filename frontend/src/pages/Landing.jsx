@@ -4,7 +4,7 @@ import logo from '../assets/BubblePat.png';
 import icon from '../assets/BubblePatIcon.png';
 import heroImg from '../assets/hero-web.png';
 import { useAuth } from '../context/AuthContext';
-import { PLAN_INFO, PLAN_FEATURES, isPremium } from '../api/plans';
+import { PLAN_INFO, PLAN_FEATURES } from '../api/plans';
 
 /* Iconos SVG inline (sin dependencias externas) */
 const Icon = {

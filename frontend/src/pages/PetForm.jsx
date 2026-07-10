@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { getAllDogBreeds, getAllCatBreeds } from '../api/breeds';
 import { isPremium } from '../api/plans';
