@@ -1,6 +1,6 @@
 const CARE = {
-  Perro:  { items: ['Paseo diario', 'Vacunas caninas', 'Desparasitación', 'Razas (The Dog API)'] },
-  Gato:   { items: ['Vacunas felinas', 'Control de peso', 'Razas (The Cat API)'] },
+  Perro:  { items: ['Paseo diario', 'Vacunas caninas', 'Desparasitación', 'Guía de razas'] },
+  Gato:   { items: ['Vacunas felinas', 'Control de peso', 'Guía de razas'] },
   Conejo: { items: ['Alimentación con heno', 'Limpieza del hábitat', 'Control dental'] },
   Ave:    { items: ['Cambio de agua', 'Limpieza de jaula', 'Control de plumaje', 'Alimentación'] },
 };

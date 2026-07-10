@@ -124,6 +124,18 @@ public class PetService {
             throw new RuntimeException("Ya completaste la rutina de hoy");
         }
 
+        // Marcar todas las rutinas de hoy como completadas para que el detalle
+        // refleje el mismo estado que el dashboard.
+        List<Routine> rutinas = routineRepository.findByPetId(pet.getId());
+        for (Routine r : rutinas) {
+            if (aplicaHoy(r, today) && !(r.isCompleted() && r.getCompletedAt() != null
+                    && r.getCompletedAt().toLocalDate().equals(today))) {
+                r.setCompleted(true);
+                r.setCompletedAt(LocalDateTime.now());
+                routineRepository.save(r);
+            }
+        }
+
         int antes = pet.getDailyStreak();
         aplicarAvanceRacha(pet, today);
         verificarHitoRacha(pet, antes, pet.getDailyStreak());
