@@ -575,39 +575,41 @@ export default function PetDetail() {
 
             <HeatCycle pet={pet} onSave={saveHeatDate} />
 
-            {/* ===== Estado general (bienestar) ===== */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-rose-500">Estado general de {pet.name}</h2>
-                <div className="text-right">
-                  <span className={`text-3xl font-bold ${scoreColor}`}>{wellness.score}%</span>
-                  <p className={`text-xs font-medium ${scoreColor}`}>{wellness.level}</p>
-                </div>
-              </div>
-              {wellness.items.length === 0 ? (
-                <p className="text-sm text-rose-300">Agrega rutinas y vacunas para calcular el estado de {pet.name}.</p>
-              ) : (
-                <>
-                  {wellness.score < 100 && (
-                    <p className="text-xs text-rose-300 mb-3">Mejora completando rutinas diarias y manteniendo las vacunas al día.</p>
-                  )}
-                  <div className="space-y-3">
-                    {wellness.items.map((it) => (
-                      <div key={it.key}>
-                        <div className="flex justify-between items-center text-sm mb-1">
-                          <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
-                          <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
-                        </div>
-                        <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
-                          <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
-                            style={{ width: statusWidth[it.status] || '12%' }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+        {/* ===== Estado general (bienestar) ===== */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-rose-500">Estado general de {pet.name}</h2>
+            <div className="text-right">
+              <span className={`text-3xl font-bold ${scoreColor}`}>{wellness.score}%</span>
+              <p className={`text-xs font-medium ${scoreColor}`}>{wellness.level}</p>
             </div>
+          </div>
+          {wellness.items.length === 0 ? (
+            <p className="text-sm text-rose-300">Agrega rutinas y vacunas para calcular el estado de {pet.name}.</p>
+          ) : premium ? (
+            <>
+              {wellness.score < 100 && (
+                <p className="text-xs text-rose-300 mb-3">Mejora completando rutinas diarias y manteniendo las vacunas al día.</p>
+              )}
+              <div className="space-y-3">
+                {wellness.items.map((it) => (
+                  <div key={it.key}>
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
+                      <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
+                        style={{ width: statusWidth[it.status] || '12%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-rose-300">Actualiza a Premium para ver estadísticas de salud detalladas.</p>
+          )}
+        </div>
 
             {premium && (
               <>
@@ -641,19 +643,19 @@ export default function PetDetail() {
               </>
             )}
 
-            {/* ===== Tabs ===== */}
-            <div className="flex gap-2 flex-wrap">
-              {['routines', 'vaccinations', 'reminders', 'activity']
-                .filter((tab) => tab !== 'vaccinations' || !['Ave', 'Conejo'].includes(pet.species))
-                .map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
-                    activeTab === tab ? 'bg-rose-300 text-white shadow-sm' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
-                  }`}>
-                  {tab === 'routines' ? 'Rutinas' : tab === 'vaccinations' ? 'Vacunas' : tab === 'reminders' ? 'Recordatorios' : 'Actividad'}
-                </button>
-              ))}
-            </div>
+        {/* ===== Tabs ===== */}
+        <div className="flex gap-2 flex-wrap">
+          {['routines', ...premium ? ['vaccinations', 'reminders'] : [], 'activity']
+            .filter((tab) => tab !== 'vaccinations' || !['Ave', 'Conejo'].includes(pet.species))
+            .map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
+                activeTab === tab ? 'bg-rose-300 text-white shadow-sm' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
+              }`}>
+              {tab === 'routines' ? 'Rutinas' : tab === 'vaccinations' ? 'Vacunas' : tab === 'reminders' ? 'Recordatorios' : 'Actividad'}
+            </button>
+          ))}
+        </div>
 
         {activeTab === 'routines' && (
           <div className="space-y-4">
