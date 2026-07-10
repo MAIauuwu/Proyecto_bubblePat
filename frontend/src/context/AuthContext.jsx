@@ -13,8 +13,9 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('userName');
     const email = localStorage.getItem('userEmail');
+    const plan = localStorage.getItem('userPlan');
     if (token) {
-      setUser({ token, name, email });
+      setUser({ token, name, email, plan: plan || 'FREE' });
     }
     setLoading(false);
   }, []);
@@ -24,7 +25,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', data.token);
     localStorage.setItem('userName', data.name);
     localStorage.setItem('userEmail', data.email);
-    setUser({ token: data.token, name: data.name, email: data.email });
+    localStorage.setItem('userPlan', data.plan || 'FREE');
+    setUser({ token: data.token, name: data.name, email: data.email, plan: data.plan || 'FREE' });
     applyHue(data.themeHue != null ? data.themeHue : 265);
   };
 
@@ -42,11 +44,17 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     localStorage.removeItem('userName');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('userPlan');
     setUser(null);
   };
 
+  const updateUserPlan = (plan) => {
+    localStorage.setItem('userPlan', plan);
+    setUser((prev) => prev ? { ...prev, plan } : prev);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, persistAuth }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, persistAuth, updateUserPlan }}>
       {children}
     </AuthContext.Provider>
   );

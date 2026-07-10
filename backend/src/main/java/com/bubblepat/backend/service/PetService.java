@@ -57,6 +57,11 @@ public class PetService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
+        String plan = user.getPlan();
+        if ((plan == null || plan.equals("FREE")) && user.getPets().size() >= 2) {
+            throw new RuntimeException("Plan gratuito: máximo 2 mascotas. Mejora a Premium para mascotas ilimitadas.");
+        }
+
         Pet pet = new Pet();
         pet.setName(request.getName());
         pet.setSpecies(request.getSpecies());
@@ -65,6 +70,8 @@ public class PetService {
         pet.setWeight(request.getWeight());
         pet.setAllergicTo(request.getAllergicTo());
         pet.setLastDeworming(request.getLastDeworming());
+        pet.setSex(request.getSex());
+        pet.setLastHeatDate(request.getLastHeatDate());
         pet.setUser(user);
         pet = petRepository.save(pet);
 
@@ -86,6 +93,8 @@ public class PetService {
         pet.setWeight(request.getWeight());
         pet.setAllergicTo(request.getAllergicTo());
         pet.setLastDeworming(request.getLastDeworming());
+        pet.setSex(request.getSex());
+        pet.setLastHeatDate(request.getLastHeatDate());
 
         return toResponse(petRepository.save(pet));
     }
@@ -431,6 +440,8 @@ public class PetService {
         r.setWeight(pet.getWeight());
         r.setAllergicTo(pet.getAllergicTo());
         r.setLastDeworming(pet.getLastDeworming());
+        r.setSex(pet.getSex());
+        r.setLastHeatDate(pet.getLastHeatDate());
 
         // Cálculo de la racha efectiva: si ya está rota, se muestra en 0
         LocalDate today = LocalDate.now();

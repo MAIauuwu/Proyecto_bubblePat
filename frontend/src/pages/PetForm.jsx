@@ -2,15 +2,21 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { getAllDogBreeds, getAllCatBreeds } from '../api/breeds';
+import { isPremium } from '../api/plans';
+import { useAuth } from '../context/AuthContext';
 
 export default function PetForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
+  const { user } = useAuth();
+  const premium = isPremium(user?.plan);
+  const [limitReached, setLimitReached] = useState(false);
 
   const [form, setForm] = useState({
     name: '', species: '', breed: '', birthDate: '',
-    weight: '', allergicTo: '', lastDeworming: ''
+    weight: '', allergicTo: '', lastDeworming: '',
+    sex: '', lastHeatDate: ''
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -32,6 +38,10 @@ export default function PetForm() {
   useEffect(() => {
     if (isEditing) {
       loadPet();
+    } else if (!premium) {
+      api.get('/pets').then(({ data }) => {
+        if (data.length >= 2) setLimitReached(true);
+      }).catch(() => {});
     }
   }, [id]);
 
@@ -45,7 +55,9 @@ export default function PetForm() {
         birthDate: data.birthDate || '',
         weight: data.weight || '',
         allergicTo: data.allergicTo || '',
-        lastDeworming: data.lastDeworming || ''
+        lastDeworming: data.lastDeworming || '',
+        sex: data.sex || '',
+        lastHeatDate: data.lastHeatDate || ''
       });
       loadBreedsFor(data.species);
     } catch (err) {
@@ -96,6 +108,8 @@ export default function PetForm() {
         weight: form.weight ? parseFloat(form.weight) : null,
         birthDate: form.birthDate || null,
         lastDeworming: form.lastDeworming || null,
+        sex: form.sex || null,
+        lastHeatDate: form.lastHeatDate || null,
       };
       if (isEditing) {
         await api.put(`/pets/${id}`, payload);
@@ -120,6 +134,17 @@ export default function PetForm() {
 
         {error && <div className="bg-rose-50 text-rose-500 p-3 rounded-lg mb-4 border border-rose-100">{error}</div>}
 
+        {limitReached && (
+          <div className="bg-gradient-to-r from-rose-100 to-purple-100 text-rose-500 p-5 rounded-xl mb-4 border border-rose-200">
+            <p className="font-bold text-lg">🐾 Has alcanzado el límite del plan gratuito</p>
+            <p className="text-sm text-rose-400 mt-1">El plan gratuito permite hasta 2 mascotas. Mejora a Premium para registrar mascotas ilimitadas.</p>
+            <Link to="/subscription" className="inline-block mt-3 bg-rose-400 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-rose-500 transition">
+              Mejorar a Premium
+            </Link>
+          </div>
+        )}
+
+        {!limitReached && (
         <form onSubmit={handleSubmit} className="bg-white/70 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-pink-100 space-y-4">
           <div>
             <label className="block text-sm font-medium text-rose-400 mb-1">Nombre *</label>
@@ -143,6 +168,34 @@ export default function PetForm() {
               <option value="Conejo">Conejo</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-rose-400 mb-1">Sexo</label>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="sex" value="Hembra" checked={form.sex === 'Hembra'}
+                  onChange={(e) => setForm({ ...form, sex: e.target.value })}
+                  className="accent-rose-400" />
+                <span className="text-sm text-rose-400">♀ Hembra</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="sex" value="Macho" checked={form.sex === 'Macho'}
+                  onChange={(e) => setForm({ ...form, sex: e.target.value })}
+                  className="accent-rose-400" />
+                <span className="text-sm text-rose-400">♂ Macho</span>
+              </label>
+            </div>
+          </div>
+
+          {form.sex === 'Hembra' && ['Perro', 'Gato', 'Conejo', 'Ave'].includes(form.species) && (
+            <div>
+              <label className="block text-sm font-medium text-rose-400 mb-1">Fecha del último celo <span className="text-xs text-rose-200">(opcional)</span></label>
+              <input type="date" name="lastHeatDate" max={new Date().toISOString().split('T')[0]} value={form.lastHeatDate}
+                onChange={(e) => setForm({ ...form, lastHeatDate: e.target.value })}
+                className="w-full px-4 py-2 border border-pink-100 rounded-lg focus:ring-2 focus:ring-rose-300 outline-none bg-pink-50/50" />
+              <p className="text-xs text-rose-200 mt-1">Para estimar el próximo celo según la especie.</p>
+            </div>
+          )}
 
           <div className="relative" ref={suggestionsRef}>
             <label className="block text-sm font-medium text-rose-400 mb-1">Raza</label>
@@ -213,6 +266,7 @@ export default function PetForm() {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

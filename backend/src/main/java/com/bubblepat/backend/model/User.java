@@ -26,6 +26,9 @@ public class User {
     // Tema de color elegido por el usuario (hue HSL 0-360). null = por defecto.
     private Integer themeHue;
 
+    // Plan de suscripción: FREE, PREMIUM_MONTHLY, PREMIUM_ANNUAL, FAMILY
+    private String plan = "FREE";
+
     private LocalDate createdAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

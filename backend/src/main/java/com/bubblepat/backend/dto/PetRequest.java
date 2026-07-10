@@ -18,4 +18,6 @@ public class PetRequest {
     private Double weight;
     private String allergicTo;
     private LocalDate lastDeworming;
+    private String sex;
+    private LocalDate lastHeatDate;
 }

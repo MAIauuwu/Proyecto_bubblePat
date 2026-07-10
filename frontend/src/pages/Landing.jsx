@@ -4,6 +4,7 @@ import logo from '../assets/BubblePat.png';
 import icon from '../assets/BubblePatIcon.png';
 import heroImg from '../assets/hero-web.png';
 import { useAuth } from '../context/AuthContext';
+import { PLAN_INFO, PLAN_FEATURES, isPremium } from '../api/plans';
 
 /* Iconos SVG inline (sin dependencias externas) */
 const Icon = {
@@ -51,6 +52,7 @@ const steps = [
 const NAV_ITEMS = [
   { href: '#funciones', label: 'Funciones' },
   { href: '#como-funciona', label: 'Cómo funciona' },
+  { href: '#suscripciones', label: 'Suscripciones' },
   { href: '#contacto', label: 'Contacto' },
 ];
 
@@ -196,6 +198,85 @@ export default function Landing() {
           {!authed && (
             <Link to="/register" className="bg-rose-300 text-white px-6 py-2.5 rounded-lg hover:bg-rose-400 transition font-semibold shadow-sm whitespace-nowrap">Crear cuenta</Link>
           )}
+        </div>
+      </section>
+
+      {/* ===== SUSCRIPCIONES ===== */}
+      <section id="suscripciones" className="bg-white/60 backdrop-blur-sm border-y border-pink-100">
+        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20">
+          {/* Card principal */}
+          <div className="bg-gradient-to-r from-rose-200/80 via-pink-200/80 to-purple-200/80 rounded-3xl p-8 sm:p-10 mb-10 text-center shadow-sm border border-rose-200">
+            <Icon.Heart className="w-10 h-10 mx-auto text-rose-400 mb-3" />
+            <h2 className="text-3xl sm:text-4xl font-bold text-rose-500">Suscripciones</h2>
+            <p className="mt-3 text-rose-400 max-w-xl mx-auto">Empieza gratis y mejora cuando lo necesites. Precios en pesos chilenos (CLP).</p>
+          </div>
+
+          {/* Cards de planes */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Plan Gratuito */}
+            <div className="bg-white/80 rounded-2xl border border-pink-100 p-6 shadow-sm flex flex-col">
+              <h3 className="text-lg font-bold text-rose-500">{PLAN_INFO.FREE.label}</h3>
+              <p className="text-3xl font-extrabold text-rose-500 mt-1">{PLAN_INFO.FREE.price}</p>
+              <ul className="mt-4 space-y-2 flex-1">
+                {PLAN_FEATURES.free.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-rose-400">
+                    <Icon.Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+              {authed ? (
+                <Link to="/app" className="mt-5 block text-center bg-gray-100 text-rose-400 py-2.5 rounded-lg font-medium">Tu plan actual</Link>
+              ) : (
+                <Link to="/register" className="mt-5 block text-center bg-gray-100 text-rose-400 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition">Empezar gratis</Link>
+              )}
+            </div>
+
+            {/* Premium Mensual */}
+            <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border-2 border-rose-300 p-6 shadow-md flex flex-col relative">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-400 text-white text-xs font-bold px-3 py-1 rounded-full">Más popular</span>
+              <h3 className="text-lg font-bold text-rose-500">{PLAN_INFO.PREMIUM_MONTHLY.label}</h3>
+              <p className="text-3xl font-extrabold text-rose-500 mt-1">{PLAN_INFO.PREMIUM_MONTHLY.price}<span className="text-sm font-normal text-rose-300">{PLAN_INFO.PREMIUM_MONTHLY.period}</span></p>
+              <ul className="mt-4 space-y-2 flex-1">
+                {PLAN_FEATURES.premium.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-rose-400">
+                    <Icon.Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link to={authed ? "/subscription" : "/register"} className="mt-5 block text-center bg-rose-400 text-white py-2.5 rounded-lg font-medium hover:bg-rose-500 transition">Suscribirme</Link>
+            </div>
+
+            {/* Premium Anual */}
+            <div className="bg-gradient-to-br from-amber-50 to-rose-50 rounded-2xl border-2 border-amber-300 p-6 shadow-md flex flex-col relative">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-white text-xs font-bold px-3 py-1 rounded-full">{PLAN_INFO.PREMIUM_ANNUAL.badge}</span>
+              <h3 className="text-lg font-bold text-rose-500">{PLAN_INFO.PREMIUM_ANNUAL.label}</h3>
+              <p className="text-3xl font-extrabold text-rose-500 mt-1">{PLAN_INFO.PREMIUM_ANUAL.price}<span className="text-sm font-normal text-rose-300">{PLAN_INFO.PREMIUM_ANUAL.period}</span></p>
+              <p className="text-xs text-emerald-500 font-medium mt-1">Ahorras ~$13.000 al año</p>
+              <ul className="mt-3 space-y-2 flex-1">
+                {PLAN_FEATURES.premium.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-rose-400">
+                    <Icon.Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link to={authed ? "/subscription" : "/register"} className="mt-5 block text-center bg-amber-400 text-white py-2.5 rounded-lg font-medium hover:bg-amber-500 transition">Suscribirme</Link>
+            </div>
+
+            {/* Plan Familiar */}
+            <div className="bg-gradient-to-br from-purple-50 to-rose-50 rounded-2xl border border-purple-200 p-6 shadow-sm flex flex-col relative">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-400 text-white text-xs font-bold px-3 py-1 rounded-full">{PLAN_INFO.FAMILY.badge}</span>
+              <h3 className="text-lg font-bold text-rose-500">{PLAN_INFO.FAMILY.label}</h3>
+              <p className="text-3xl font-extrabold text-rose-500 mt-1">{PLAN_INFO.FAMILY.price}<span className="text-sm font-normal text-rose-300">{PLAN_INFO.FAMILY.period}</span></p>
+              <ul className="mt-4 space-y-2 flex-1">
+                {PLAN_FEATURES.family.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-rose-400">
+                    <Icon.Check className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 text-center bg-purple-100 text-purple-400 py-2.5 rounded-lg font-medium">Más info pronto</div>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -15,6 +15,8 @@ public class PetResponse {
     private Double weight;
     private String allergicTo;
     private LocalDate lastDeworming;
+    private String sex;
+    private LocalDate lastHeatDate;
     private int dailyStreak;
     private int bestStreak;
     private LocalDate lastRoutineDate;

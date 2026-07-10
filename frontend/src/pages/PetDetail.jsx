@@ -4,6 +4,8 @@ import api from '../api/client';
 import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
 import logo from '../assets/BubblePat.png';
 import SpeciesCare from '../components/SpeciesCare';
+import AnimalCycle from '../components/AnimalCycle';
+import HeatCycle from '../components/HeatCycle';
 
 const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-rose-300' };
 const statusWidth = { ok: '100%', warning: '55%', bad: '12%' };
@@ -104,6 +106,7 @@ export default function PetDetail() {
     name: pet.name, species: pet.species, breed: pet.breed || null,
     birthDate: pet.birthDate || null, weight: pet.weight || null,
     allergicTo: pet.allergicTo || null, lastDeworming: pet.lastDeworming || null,
+    sex: pet.sex || null, lastHeatDate: pet.lastHeatDate || null,
   });
 
   const saveQuick = async (e) => {
@@ -117,6 +120,11 @@ export default function PetDetail() {
     }
     setQuickModal(null);
     setQuickData({ weight: '', deworming: '', vaccine: { name: '', appliedDate: '', nextDoseDate: '' } });
+    loadPet();
+  };
+
+  const saveHeatDate = async (lastHeatDate) => {
+    await api.put(`/pets/${id}`, { ...petToRequest(), lastHeatDate: lastHeatDate || null });
     loadPet();
   };
 
@@ -391,7 +399,7 @@ export default function PetDetail() {
               )}
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-rose-500">{pet.name}</h1>
-                <p className="text-rose-300 mt-1">{pet.species} {pet.breed && `· ${pet.breed}`}</p>
+                <p className="text-rose-300 mt-1">{pet.species}{pet.breed && ` · ${pet.breed}`}{pet.sex && ` · ${pet.sex === 'Hembra' ? '♀' : '♂'} ${pet.sex}`}</p>
                 {pet.birthDate && <p className="text-rose-200 text-sm mt-1">Nacimiento: {pet.birthDate}</p>}
               </div>
             </div>
@@ -488,6 +496,10 @@ export default function PetDetail() {
         </div>
 
         <SpeciesCare species={pet.species} />
+
+        <AnimalCycle species={pet.species} birthDate={pet.birthDate} />
+
+        <HeatCycle pet={pet} onSave={saveHeatDate} />
 
         {/* ===== Estado general (bienestar) ===== */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">

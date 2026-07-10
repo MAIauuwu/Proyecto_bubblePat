@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import PetForm from './pages/PetForm';
 import PetDetail from './pages/PetDetail';
 import Settings from './pages/Settings';
+import Subscription from './pages/Subscription';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/pets/:id/edit" element={<ProtectedRoute><PetForm /></ProtectedRoute>} />
       <Route path="/pets/:id" element={<ProtectedRoute><PetDetail /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

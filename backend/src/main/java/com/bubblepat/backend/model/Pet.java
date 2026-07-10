@@ -27,6 +27,8 @@ public class Pet {
     private Double weight;
     private String allergicTo;
     private LocalDate lastDeworming;
+    private String sex;
+    private LocalDate lastHeatDate;
 
     // Sistema de rachas
     private int dailyStreak = 0;

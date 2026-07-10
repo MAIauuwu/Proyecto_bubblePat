@@ -34,6 +34,13 @@ public class UserService {
         return toProfile(user);
     }
 
+    public UserProfileResponse updatePlan(String email, String plan) {
+        User user = getByEmail(email);
+        user.setPlan(plan);
+        userRepository.save(user);
+        return toProfile(user);
+    }
+
     // Actualiza nombre y correo. Devuelve un JWT nuevo (con el correo actualizado)
     // para que la sesión siga siendo válida tras cambiar el email.
     public AuthResponse updateProfile(String currentEmail, UpdateProfileRequest req) {
@@ -46,7 +53,7 @@ public class UserService {
         user.setEmail(req.getEmail());
         userRepository.save(user);
         return new AuthResponse(jwtUtil.generateToken(user.getEmail()),
-                user.getEmail(), user.getName(), user.getThemeHue());
+                user.getEmail(), user.getName(), user.getThemeHue(), user.getPlan());
     }
 
     public void changePassword(String email, ChangePasswordRequest req) {
@@ -69,6 +76,7 @@ public class UserService {
         r.setName(u.getName());
         r.setEmail(u.getEmail());
         r.setThemeHue(u.getThemeHue());
+        r.setPlan(u.getPlan());
         return r;
     }
 }

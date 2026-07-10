@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import logo from '../assets/BubblePat.png';
 import { getDogImageByBreed, getCatImageByBreed, getRandomDogImage, getRandomCatImage, getGenericSpeciesImage, SPECIES_EMOJI, SPECIES_GRADIENT } from '../api/breeds';
+import { isPremium, PLAN_INFO } from '../api/plans';
 
 const statCard = 'bg-white/70 backdrop-blur-sm rounded-xl border border-pink-100 p-4 text-center shadow-sm';
 
@@ -56,6 +57,9 @@ export default function Dashboard() {
     }
   };
 
+  const plan = user?.plan || 'FREE';
+  const premium = isPremium(plan);
+
   // === Métricas globales del panel ===
   const totalPets = pets.length;
   const pendingToday = pets.reduce((acc, p) => acc + (p.reminders || []).filter(
@@ -91,6 +95,31 @@ export default function Dashboard() {
             className="bg-rose-300 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-rose-400 transition font-medium shadow-sm text-sm">
             + Mascota
           </Link>
+        </div>
+
+        {/* Card Suscripción */}
+        <div className={`rounded-xl p-4 mb-6 flex items-center justify-between gap-3 border ${
+          premium ? 'bg-gradient-to-r from-amber-50 to-rose-50 border-amber-200' : 'bg-gradient-to-r from-rose-100 to-purple-100 border-rose-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{premium ? '⭐' : '🐾'}</span>
+            <div>
+              <p className="text-sm font-bold text-rose-500">
+                {premium ? `${PLAN_INFO[plan]?.label || 'Premium'} activo` : 'Plan Gratuito'}
+              </p>
+              <p className="text-xs text-rose-400">
+                {premium ? 'Mascotas ilimitadas · todas las funciones desbloqueadas' : `Hasta 2 mascotas · ${pets.length}/2 usadas`}
+              </p>
+            </div>
+          </div>
+          {!premium && (
+            <Link to="/subscription" className="bg-rose-400 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-rose-500 transition whitespace-nowrap">
+              Mejorar a Premium
+            </Link>
+          )}
+          {premium && (
+            <Link to="/subscription" className="text-rose-400 hover:text-rose-500 text-sm font-medium">Gestionar</Link>
+          )}
         </div>
 
         {/* Resumen global */}

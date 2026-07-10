@@ -8,4 +8,5 @@ public class UserProfileResponse {
     private String name;
     private String email;
     private Integer themeHue;
+    private String plan;
 }
