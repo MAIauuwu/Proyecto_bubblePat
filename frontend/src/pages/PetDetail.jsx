@@ -73,6 +73,7 @@ export default function PetDetail() {
   const [showMenu, setShowMenu] = useState(false);
   const [routineMenuId, setRoutineMenuId] = useState(null);
   const [showForm, setShowForm] = useState({ routine: false, vaccine: false, reminder: false });
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     loadPet();
@@ -567,91 +568,122 @@ export default function PetDetail() {
           </div>
         </div>
 
-        <SpeciesCare species={pet.species} />
-
-        <AnimalCycle species={pet.species} birthDate={pet.birthDate} />
-
-        <HeatCycle pet={pet} onSave={saveHeatDate} />
-
-        {/* ===== Estado general (bienestar) ===== */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-rose-500">Estado general de {pet.name}</h2>
-            <div className="text-right">
-              <span className={`text-3xl font-bold ${scoreColor}`}>{wellness.score}%</span>
-              <p className={`text-xs font-medium ${scoreColor}`}>{wellness.level}</p>
+        {/* ===== Rutinas pendientes de hoy ===== */}
+        {(routinesToday || []).length > 0 && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-4">
+            <h3 className="text-sm font-bold text-rose-500 mb-3">Rutinas de hoy</h3>
+            <div className="space-y-2">
+              {routinesToday.filter(r => r.appliesToday && !r.doneToday).map((r) => (
+                <div key={r.id} className="flex items-center gap-3 bg-pink-50/50 rounded-lg p-2">
+                  <span className="text-lg">{r.typeLabel === 'Alimentación' ? '🍖' : r.typeLabel === 'Paseo' ? '🦮' : r.typeLabel === 'Agua' ? '💧' : r.typeLabel === 'Medicina' ? '💊' : r.typeLabel === 'Baño' ? '🛁' : '✅'}</span>
+                  <span className="text-sm text-rose-400 font-medium flex-1">{r.typeLabel}</span>
+                  {r.description && <span className="text-xs text-rose-200 hidden sm:inline">{r.description}</span>}
+                  <button onClick={() => completeRoutine(r.id)} className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-xs hover:bg-emerald-300 transition">
+                    Completar
+                  </button>
+                </div>
+              ))}
+              {routinesToday.filter(r => r.appliesToday && !r.doneToday).length === 0 && (
+                <p className="text-xs text-emerald-600 text-center py-2">✓ Todas las rutinas de hoy completadas</p>
+              )}
             </div>
           </div>
-          {wellness.items.length === 0 ? (
-            <p className="text-sm text-rose-300">Agrega rutinas y vacunas para calcular el estado de {pet.name}.</p>
-          ) : (
-            <>
-              {wellness.score < 100 && (
-                <p className="text-xs text-rose-300 mb-3">Mejora completando rutinas diarias y manteniendo las vacunas al día.</p>
-              )}
-              <div className="space-y-3">
-                {wellness.items.map((it) => (
-                  <div key={it.key}>
-                    <div className="flex justify-between items-center text-sm mb-1">
-                      <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
-                      <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
-                    </div>
-                    <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
-                        style={{ width: statusWidth[it.status] || '12%' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {premium && (
-          <>
-            {/* ===== Medallas (Premium) ===== */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-rose-500">Logros</h2>
-                <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
-                {badges.map((b) => (
-                  <div key={b.key} title={b.description}
-                    className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
-                      b.earned
-                        ? 'bg-gradient-to-br from-amber-50 to-rose-50 border-amber-200'
-                        : 'bg-gray-50 border-gray-100 opacity-25 grayscale'
-                    }`}>
-                    <span className="text-2xl">{b.earned ? b.emoji : '🔒'}</span>
-                    <span className={`text-[11px] mt-1 font-medium ${b.earned ? 'text-rose-400' : 'text-gray-400'}`}>{b.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ===== Botón descarga PDF (Premium) ===== */}
-            <button
-              onClick={() => generatePDF()}
-              className="w-full bg-gradient-to-r from-amber-100 to-rose-100 border border-amber-200 text-rose-600 px-6 py-3 rounded-xl hover:from-amber-200 hover:to-rose-200 transition font-medium shadow-sm flex items-center justify-center gap-2">
-              📄 Descargar ficha en PDF
-            </button>
-          </>
         )}
 
-        {/* ===== Tabs ===== */}
-        <div className="flex gap-2 flex-wrap">
-          {['routines', 'vaccinations', 'reminders', 'activity']
-            .filter((tab) => tab !== 'vaccinations' || !['Ave', 'Conejo'].includes(pet.species))
-            .map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
-                activeTab === tab ? 'bg-rose-300 text-white shadow-sm' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
-              }`}>
-              {tab === 'routines' ? 'Rutinas' : tab === 'vaccinations' ? 'Vacunas' : tab === 'reminders' ? 'Recordatorios' : 'Actividad'}
-            </button>
-          ))}
-        </div>
+        {/* ===== Toggle más detalles ===== */}
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="w-full text-center py-3 rounded-xl bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition flex items-center justify-center gap-2">
+          {showDetails ? '▲ Ocultar detalles' : '▼ Ver más detalles'}
+        </button>
+
+        {showDetails && (
+          <>
+            <SpeciesCare species={pet.species} />
+            <AnimalCycle species={pet.species} birthDate={pet.birthDate} />
+            <HeatCycle pet={pet} onSave={saveHeatDate} />
+
+            <HeatCycle pet={pet} onSave={saveHeatDate} />
+
+            {/* ===== Estado general (bienestar) ===== */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-rose-500">Estado general de {pet.name}</h2>
+                <div className="text-right">
+                  <span className={`text-3xl font-bold ${scoreColor}`}>{wellness.score}%</span>
+                  <p className={`text-xs font-medium ${scoreColor}`}>{wellness.level}</p>
+                </div>
+              </div>
+              {wellness.items.length === 0 ? (
+                <p className="text-sm text-rose-300">Agrega rutinas y vacunas para calcular el estado de {pet.name}.</p>
+              ) : (
+                <>
+                  {wellness.score < 100 && (
+                    <p className="text-xs text-rose-300 mb-3">Mejora completando rutinas diarias y manteniendo las vacunas al día.</p>
+                  )}
+                  <div className="space-y-3">
+                    {wellness.items.map((it) => (
+                      <div key={it.key}>
+                        <div className="flex justify-between items-center text-sm mb-1">
+                          <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
+                          <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
+                        </div>
+                        <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
+                            style={{ width: statusWidth[it.status] || '12%' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {premium && (
+              <>
+                {/* ===== Medallas (Premium) ===== */}
+                <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-rose-500">Logros</h2>
+                    <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+                    {badges.map((b) => (
+                      <div key={b.key} title={b.description}
+                        className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
+                          b.earned
+                            ? 'bg-gradient-to-br from-amber-50 to-rose-50 border-amber-200'
+                            : 'bg-gray-50 border-gray-100 opacity-25 grayscale'
+                        }`}>
+                        <span className="text-2xl">{b.earned ? b.emoji : '🔒'}</span>
+                        <span className={`text-[11px] mt-1 font-medium ${b.earned ? 'text-rose-400' : 'text-gray-400'}`}>{b.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ===== Botón descarga PDF (Premium) ===== */}
+                <button
+                  onClick={() => generatePDF()}
+                  className="w-full bg-gradient-to-r from-amber-100 to-rose-100 border border-amber-200 text-rose-600 px-6 py-3 rounded-xl hover:from-amber-200 hover:to-rose-200 transition font-medium shadow-sm flex items-center justify-center gap-2">
+                  📄 Descargar ficha en PDF
+                </button>
+              </>
+            )}
+
+            {/* ===== Tabs ===== */}
+            <div className="flex gap-2 flex-wrap">
+              {['routines', 'vaccinations', 'reminders', 'activity']
+                .filter((tab) => tab !== 'vaccinations' || !['Ave', 'Conejo'].includes(pet.species))
+                .map((tab) => (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
+                    activeTab === tab ? 'bg-rose-300 text-white shadow-sm' : 'bg-white/70 text-rose-300 border border-pink-100 hover:bg-rose-50'
+                  }`}>
+                  {tab === 'routines' ? 'Rutinas' : tab === 'vaccinations' ? 'Vacunas' : tab === 'reminders' ? 'Recordatorios' : 'Actividad'}
+                </button>
+              ))}
+            </div>
 
         {activeTab === 'routines' && (
           <div className="space-y-4">
@@ -1028,8 +1060,10 @@ export default function PetDetail() {
                 ))}
               </div>
             </div>
-          );
-        })()}
+           );
+         })()}
+          </>
+        )}
       </div>
 
       {/* ===== Modal de acciones rápidas ===== */}
