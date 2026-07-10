@@ -524,20 +524,20 @@ export default function PetDetail() {
         </div>
 
         {/* ===== Acciones rápidas ===== */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-3">
           <button onClick={() => setQuickModal('weight')}
-            className="px-3 py-1.5 rounded-lg bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition">
-            Registrar peso
+            className="w-12 h-12 rounded-xl bg-white/70 border border-pink-100 text-rose-400 flex items-center justify-center hover:bg-rose-50 transition shadow-sm" title="Registrar peso">
+            ⚖️
           </button>
           {!['Ave', 'Conejo'].includes(pet.species) && (
             <>
               <button onClick={() => setQuickModal('vaccine')}
-                className="px-3 py-1.5 rounded-lg bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition">
-                Vacuna
+                className="w-12 h-12 rounded-xl bg-white/70 border border-pink-100 text-rose-400 flex items-center justify-center hover:bg-rose-50 transition shadow-sm" title="Vacuna">
+                💉
               </button>
               <button onClick={() => setQuickModal('deworming')}
-                className="px-3 py-1.5 rounded-lg bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition">
-                Desparasitación
+                className="w-12 h-12 rounded-xl bg-white/70 border border-pink-100 text-rose-400 flex items-center justify-center hover:bg-rose-50 transition shadow-sm" title="Desparasitación">
+                🐛
               </button>
             </>
           )}
@@ -585,20 +585,25 @@ export default function PetDetail() {
           {wellness.items.length === 0 ? (
             <p className="text-sm text-rose-300">Agrega rutinas y vacunas para calcular el estado de {pet.name}.</p>
           ) : (
-            <div className="space-y-3">
-              {wellness.items.map((it) => (
-                <div key={it.key}>
-                  <div className="flex justify-between items-center text-sm mb-1">
-                    <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
-                    <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
+            <>
+              {wellness.score < 100 && (
+                <p className="text-xs text-rose-300 mb-3">Mejora completando rutinas diarias y manteniendo las vacunas al día.</p>
+              )}
+              <div className="space-y-3">
+                {wellness.items.map((it) => (
+                  <div key={it.key}>
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span className="text-rose-400 font-medium">{it.icon} {it.label}</span>
+                      <span className={`text-xs font-medium ${statusText[it.status] || 'text-gray-400'}`}>{it.detail}</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
+                        style={{ width: statusWidth[it.status] || '12%' }} />
+                    </div>
                   </div>
-                  <div className="h-2.5 rounded-full bg-pink-100 overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${statusColor[it.status] || 'bg-gray-300'}`}
-                      style={{ width: statusWidth[it.status] || '12%' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
