@@ -6,6 +6,8 @@ import logo from '../assets/BubblePat.png';
 import SpeciesCare from '../components/SpeciesCare';
 import AnimalCycle from '../components/AnimalCycle';
 import HeatCycle from '../components/HeatCycle';
+import { useAuth } from '../context/AuthContext';
+import { isPremium } from '../api/plans';
 
 const statusColor = { ok: 'bg-emerald-400', warning: 'bg-amber-400', bad: 'bg-rose-300' };
 const statusWidth = { ok: '100%', warning: '55%', bad: '12%' };
@@ -51,9 +53,12 @@ const formatSchedule = (r) => {
 export default function PetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pet, setPet] = useState(null);
   const [activeTab, setActiveTab] = useState('routines');
   const [breedImage, setBreedImage] = useState(null);
+  const plan = user?.plan || 'FREE';
+  const premium = isPremium(plan);
 
   const [routineForm, setRoutineForm] = useState({ type: '', description: '', startTime: '', endTime: '', days: [] });
   const emptyRoutineForm = { type: '', description: '', startTime: '', endTime: '', days: [] };
@@ -320,6 +325,83 @@ export default function PetDetail() {
     }
   };
 
+  const generatePDF = () => {
+    if (!pet) return;
+    const doc = window.jspdf.jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const centerX = pageWidth / 2;
+
+    doc.setFontSize(20);
+    doc.setTextColor(244, 114, 182);
+    doc.text('Ficha de Salud - BubblePat', centerX, 20, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Mascota: ${pet.name}`, 20, 35);
+    doc.text(`Especie: ${pet.species}${pet.breed ? ` (${pet.breed})` : ''}`, 20, 42);
+    if (pet.birthDate) doc.text(`Nacimiento: ${pet.birthDate}`, 20, 49);
+    if (pet.weight) doc.text(`Peso: ${pet.weight} kg`, 20, 56);
+    if (pet.sex) doc.text(`Sexo: ${pet.sex}`, 20, 63);
+
+    doc.setFontSize(14);
+    doc.setTextColor(244, 114, 182);
+    doc.text('Estado de Bienestar', 20, 75);
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Score: ${wellness.score}% · ${wellness.level}`, 20, 82);
+
+    if (wellness.items.length > 0) {
+      let y = 92;
+      wellness.items.forEach((it) => {
+        doc.text(`${it.icon} ${it.label}: ${it.detail}`, 20, y);
+        y += 7;
+      });
+    }
+
+    if ((pet.vaccinations || []).length > 0) {
+      let y = 120;
+      doc.setFontSize(14);
+      doc.setTextColor(244, 114, 182);
+      doc.text('Vacunas', 20, y);
+      y += 10;
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      pet.vaccinations.forEach((v) => {
+        const vb = vaccineBadge(v);
+        doc.text(`• ${v.name} (${vb.text})`, 20, y);
+        if (v.appliedDate) doc.text(`  Aplicada: ${v.appliedDate}`, 25, y + 5);
+        if (v.nextDoseDate) doc.text(`  Próxima: ${v.nextDoseDate}`, 25, y + 10);
+        y += 15;
+      });
+    }
+
+    if ((pet.reminders || []).length > 0) {
+      let y = 175;
+      doc.setFontSize(14);
+      doc.setTextColor(244, 114, 182);
+      doc.text('Recordatorios Pendientes', 20, y);
+      y += 10;
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      const pending = pet.reminders.filter(r => !r.completed);
+      if (pending.length === 0) {
+        doc.text('No hay recordatorios pendientes.', 20, y);
+      } else {
+        pending.forEach((r) => {
+          const rb = reminderBadge(r);
+          doc.text(`• ${r.title} (${rb.text})`, 20, y);
+          if (r.reminderDate) doc.text(`  Fecha: ${formatDateTime(r.reminderDate)}`, 25, y + 5);
+          y += 10;
+        });
+      }
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generado el ${new Date().toLocaleDateString('es-ES')} por BubblePat`, centerX, 280, { align: 'center' });
+    doc.save(`Ficha_${pet.name}.pdf`);
+  };
+
   const relativeText = (r) => {
     if (r.completed || r.reminderDate == null) return null;
     const d = r.daysUntil;
@@ -520,26 +602,37 @@ export default function PetDetail() {
           )}
         </div>
 
-        {/* ===== Medallas ===== */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-rose-500">Logros</h2>
-            <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
-            {badges.map((b) => (
-              <div key={b.key} title={b.description}
-                className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
-                  b.earned
-                    ? 'bg-gradient-to-br from-amber-50 to-rose-50 border-amber-200'
-                    : 'bg-gray-50 border-gray-100 opacity-25 grayscale'
-                }`}>
-                <span className="text-2xl">{b.earned ? b.emoji : '🔒'}</span>
-                <span className={`text-[11px] mt-1 font-medium ${b.earned ? 'text-rose-400' : 'text-gray-400'}`}>{b.label}</span>
+        {premium && (
+          <>
+            {/* ===== Medallas (Premium) ===== */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-rose-500">Logros</h2>
+                <span className="text-xs text-rose-300 font-medium">{earnedBadges}/{badges.length} desbloqueadas</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+                {badges.map((b) => (
+                  <div key={b.key} title={b.description}
+                    className={`flex flex-col items-center text-center p-3 rounded-xl border transition ${
+                      b.earned
+                        ? 'bg-gradient-to-br from-amber-50 to-rose-50 border-amber-200'
+                        : 'bg-gray-50 border-gray-100 opacity-25 grayscale'
+                    }`}>
+                    <span className="text-2xl">{b.earned ? b.emoji : '🔒'}</span>
+                    <span className={`text-[11px] mt-1 font-medium ${b.earned ? 'text-rose-400' : 'text-gray-400'}`}>{b.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ===== Botón descarga PDF (Premium) ===== */}
+            <button
+              onClick={() => generatePDF()}
+              className="w-full bg-gradient-to-r from-amber-100 to-rose-100 border border-amber-200 text-rose-600 px-6 py-3 rounded-xl hover:from-amber-200 hover:to-rose-200 transition font-medium shadow-sm flex items-center justify-center gap-2">
+              📄 Descargar ficha en PDF
+            </button>
+          </>
+        )}
 
         {/* ===== Tabs ===== */}
         <div className="flex gap-2 flex-wrap">
