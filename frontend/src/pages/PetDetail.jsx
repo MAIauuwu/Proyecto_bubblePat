@@ -73,7 +73,6 @@ export default function PetDetail() {
   const [showMenu, setShowMenu] = useState(false);
   const [routineMenuId, setRoutineMenuId] = useState(null);
   const [showForm, setShowForm] = useState({ routine: false, vaccine: false, reminder: false });
-  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     loadPet();
@@ -568,40 +567,11 @@ export default function PetDetail() {
           </div>
         </div>
 
-        {/* ===== Rutinas pendientes de hoy ===== */}
-        {(routinesToday || []).length > 0 && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-pink-100 p-4">
-            <h3 className="text-sm font-bold text-rose-500 mb-3">Rutinas de hoy</h3>
-            <div className="space-y-2">
-              {routinesToday.filter(r => r.appliesToday && !r.doneToday).map((r) => (
-                <div key={r.id} className="flex items-center gap-3 bg-pink-50/50 rounded-lg p-2">
-                  <span className="text-lg">{r.typeLabel === 'Alimentación' ? '🍖' : r.typeLabel === 'Paseo' ? '🦮' : r.typeLabel === 'Agua' ? '💧' : r.typeLabel === 'Medicina' ? '💊' : r.typeLabel === 'Baño' ? '🛁' : '✅'}</span>
-                  <span className="text-sm text-rose-400 font-medium flex-1">{r.typeLabel}</span>
-                  {r.description && <span className="text-xs text-rose-200 hidden sm:inline">{r.description}</span>}
-                  <button onClick={() => completeRoutine(r.id)} className="bg-emerald-200 text-emerald-700 px-3 py-1 rounded-lg text-xs hover:bg-emerald-300 transition">
-                    Completar
-                  </button>
-                </div>
-              ))}
-              {routinesToday.filter(r => r.appliesToday && !r.doneToday).length === 0 && (
-                <p className="text-xs text-emerald-600 text-center py-2">✓ Todas las rutinas de hoy completadas</p>
-              )}
-            </div>
-          </div>
-        )}
+        <SpeciesCare species={pet.species} />
 
-        {/* ===== Toggle más detalles ===== */}
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="w-full text-center py-3 rounded-xl bg-white/70 border border-pink-100 text-rose-400 text-sm font-medium hover:bg-rose-50 transition flex items-center justify-center gap-2">
-          {showDetails ? '▲ Ocultar detalles' : '▼ Ver más detalles'}
-        </button>
+        <AnimalCycle species={pet.species} birthDate={pet.birthDate} />
 
-        {showDetails && (
-          <>
-            <SpeciesCare species={pet.species} />
-            <AnimalCycle species={pet.species} birthDate={pet.birthDate} />
-            <HeatCycle pet={pet} onSave={saveHeatDate} />
+        <HeatCycle pet={pet} onSave={saveHeatDate} />
 
             <HeatCycle pet={pet} onSave={saveHeatDate} />
 
@@ -1062,8 +1032,6 @@ export default function PetDetail() {
             </div>
            );
          })()}
-          </>
-        )}
       </div>
 
       {/* ===== Modal de acciones rápidas ===== */}
