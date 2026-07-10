@@ -362,27 +362,6 @@ export default function PetDetail() {
               <img src={logo} alt="BubblePat" className="h-14" />
             </Link>
           </div>
-          <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)}
-              className="p-2 rounded-lg hover:bg-rose-50 text-rose-400 font-bold text-lg" title="Opciones">
-              ⋮
-            </button>
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-pink-100 py-1 w-44">
-                  <Link to={`/pets/${id}/edit`} onClick={() => setShowMenu(false)}
-                    className="block px-4 py-2 text-sm text-rose-400 hover:bg-rose-50">
-                    Editar mascota
-                  </Link>
-                  <button onClick={() => { setShowMenu(false); handleDelete(); }}
-                    className="block w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50">
-                    Eliminar mascota
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
         </div>
       </nav>
 
@@ -399,7 +378,17 @@ export default function PetDetail() {
                 </div>
               )}
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-rose-500">{pet.name}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-rose-500">{pet.name}</h1>
+                  <Link to={`/pets/${id}/edit`}
+                    className="inline-flex items-center gap-1 text-xs bg-rose-100 text-rose-500 px-3 py-1.5 rounded-lg hover:bg-rose-200 transition font-medium">
+                    ✎ Editar
+                  </Link>
+                  <button onClick={handleDelete}
+                    className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-400 px-3 py-1.5 rounded-lg hover:bg-rose-500 hover:text-white transition font-medium border border-rose-200">
+                    🗑 Eliminar
+                  </button>
+                </div>
                 <p className="text-rose-300 mt-1">{pet.species}{pet.breed && ` · ${pet.breed}`}{pet.sex && ` · ${pet.sex === 'Hembra' ? '♀' : '♂'} ${pet.sex}`}</p>
                 {pet.birthDate && <p className="text-rose-200 text-sm mt-1">Nacimiento: {pet.birthDate}</p>}
               </div>
