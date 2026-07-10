@@ -250,7 +250,7 @@ export default function Landing() {
             <div className="bg-gradient-to-br from-amber-50 to-rose-50 rounded-2xl border-2 border-amber-300 p-6 shadow-md flex flex-col relative">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-white text-xs font-bold px-3 py-1 rounded-full">{PLAN_INFO.PREMIUM_ANNUAL.badge}</span>
               <h3 className="text-lg font-bold text-rose-500">{PLAN_INFO.PREMIUM_ANNUAL.label}</h3>
-              <p className="text-3xl font-extrabold text-rose-500 mt-1">{PLAN_INFO.PREMIUM_ANUAL.price}<span className="text-sm font-normal text-rose-300">{PLAN_INFO.PREMIUM_ANUAL.period}</span></p>
+              <p className="text-3xl font-extrabold text-rose-500 mt-1">{PLAN_INFO.PREMIUM_ANNUAL.price}<span className="text-sm font-normal text-rose-300">{PLAN_INFO.PREMIUM_ANNUAL.period}</span></p>
               <p className="text-xs text-emerald-500 font-medium mt-1">Ahorras ~$13.000 al año</p>
               <ul className="mt-3 space-y-2 flex-1">
                 {PLAN_FEATURES.premium.map((f) => (
