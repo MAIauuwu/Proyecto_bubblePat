@@ -1,8 +1,8 @@
 const CARE = {
-  Perro:  { items: ['Paseo diario', 'Vacunas caninas', 'Desparasitación', 'Guía de razas'] },
-  Gato:   { items: ['Vacunas felinas', 'Control de peso', 'Guía de razas'] },
-  Conejo: { items: ['Alimentación con heno', 'Limpieza del hábitat', 'Control dental'] },
-  Ave:    { items: ['Cambio de agua', 'Limpieza de jaula', 'Control de plumaje', 'Alimentación'] },
+  Perro:  { items: ['Paseo diario', 'Vacunas caninas', 'Desparasitación', 'Cepillado de pelo', 'Corte de uñas', 'Higiene dental', 'Socialización', 'Control de garrapatas'] },
+  Gato:   { items: ['Vacunas felinas', 'Control de peso', 'Arena sanitaria', 'Rascador', 'Juego diario', 'Cepillado', 'Higiene dental'] },
+  Conejo: { items: ['Alimentación con heno', 'Limpieza del hábitat', 'Control dental', 'Ejercicio fuera de la jaula', 'Castración recomendada', 'Corte de uñas'] },
+  Ave:    { items: ['Cambio de agua', 'Limpieza de jaula', 'Control de plumaje', 'Alimentación', 'Baño de sol', 'Juguetes y estimulación', 'Temperatura adecuada'] },
 };
 
 export default function SpeciesCare({ species }) {

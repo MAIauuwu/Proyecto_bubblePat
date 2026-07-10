@@ -66,6 +66,7 @@ export default function PetDetail() {
   const [quickData, setQuickData] = useState({ weight: '', deworming: '', vaccine: { name: '', appliedDate: '', nextDoseDate: '' } });
   const [routineView, setRoutineView] = useState('today');
   const [showMenu, setShowMenu] = useState(false);
+  const [routineMenuId, setRoutineMenuId] = useState(null);
   const [showForm, setShowForm] = useState({ routine: false, vaccine: false, reminder: false });
 
   useEffect(() => {
@@ -368,8 +369,8 @@ export default function PetDetail() {
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-lg shadow-lg border border-pink-100 py-1 w-44">
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-pink-100 py-1 w-44">
                   <Link to={`/pets/${id}/edit`} onClick={() => setShowMenu(false)}
                     className="block px-4 py-2 text-sm text-rose-400 hover:bg-rose-50">
                     Editar mascota
@@ -672,10 +673,27 @@ export default function PetDetail() {
                           Completar
                         </button>
                       )}
-                      <button onClick={() => startEditRoutine(r)} title="Editar"
-                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">✎</button>
-                      <button onClick={() => deleteRoutine(r.id)} title="Eliminar"
-                        className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-sm">🗑</button>
+                      <div className="relative">
+                        <button onClick={() => setRoutineMenuId(routineMenuId === r.id ? null : r.id)}
+                          className="p-2 rounded-lg text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition text-lg" title="Opciones">
+                          ⋮
+                        </button>
+                        {routineMenuId === r.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setRoutineMenuId(null)} />
+                            <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-pink-100 py-1 w-36">
+                              <button onClick={() => { setRoutineMenuId(null); startEditRoutine(r); }}
+                                className="block w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-50">
+                                Editar
+                              </button>
+                              <button onClick={() => { setRoutineMenuId(null); deleteRoutine(r.id); }}
+                                className="block w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50">
+                                Eliminar
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
